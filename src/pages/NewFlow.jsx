@@ -60,6 +60,9 @@ Object.assign(LIVE, {
   tier: 0,
   count: 10,
   briefEdits: {},      // data-edit-section -> edited text (kept across toggles)
+  gcMode: false,       // true while walking the gift-card flow (entered via gc-overview)
+  gcLocation: null,    // 'Tokyo Restaurant' | 'Paris Restaurant'
+  gcAmount: 100,       // 50 | 100 | 150 | number typed under "Other"
 });
 
 function ensureSets(alias) {
@@ -96,7 +99,13 @@ const PAGES = {
   'overview-completed': '20-campaigns-overview-completed-tab',
   'overview-after': '26-overview-after-launch',
   step1: '02-create-step1-intro',
-  step2: '03-create-step2-setup',
+  step2: '36-step2-new-setup', // Aug 19 layout (UGC for Your Brand + Hybrid cards); 03 = the Aug 18 original
+  'gc-overview': '46-overview-locations-grouped',
+  'gc-overview-tokyo': '48-overview-tokyo-filter',
+  'gc-step2': '37-step2-giftcard-enabled',
+  'gc-location': '38-giftcard-location',
+  'gc-amount': '40-giftcard-amount',
+  'gc-brief': '44-giftcard-brief',
   step3: '04-create-step3-products',
   adv: '05-create-advanced-default',
   'adv-set1': '05-create-advanced-default',
@@ -123,6 +132,7 @@ const MODALS = {
   'm-add-dim': '12-addproducts-alreadyinset',
 };
 const ADV_FAMILY = new Set(['adv', 'adv-set1', 'adv-2sets', 'adv-who']);
+const GC_FAMILY = new Set(['gc-overview', 'gc-overview-tokyo', 'gc-step2', 'gc-location', 'gc-amount', 'gc-brief']);
 const LAUNCHED_FAMILY = new Set(['launched', 'launched-content', 'overview-after', 'launch-t0']);
 
 /* ---------------- generic DOM helpers ---------------- */
@@ -191,13 +201,15 @@ function enhancePicker(root, ctx, api) {
     }
     setCardSelected(card, sel.has(name), sel.has(name) ? variantSummary(name) : hasVariants(name) ? 'Choose options' : undefined);
     on(card, () => {
-      if (hasVariants(name) && !sel.has(name)) {
-        api.openOptions(cardInfo(card), ctx.kind);
+      if (hasVariants(name)) {
+        // fresh pick opens the chooser; clicking a SELECTED variant product
+        // REOPENS it in edit mode (Remove product / Save footer — capture 35)
+        api.openOptions({ ...cardInfo(card), editing: sel.has(name) }, ctx.kind);
         return;
       }
-      if (sel.has(name)) { sel.delete(name); delete LIVE.variantSel[name]; }
+      if (sel.has(name)) sel.delete(name);
       else sel.set(name, {});
-      setCardSelected(card, sel.has(name), sel.has(name) ? variantSummary(name) : hasVariants(name) ? 'Choose options' : undefined);
+      setCardSelected(card, sel.has(name), undefined);
       syncPickerFooter(root, ctx);
     });
   });
@@ -288,9 +300,15 @@ function syncPickerFooter(root, ctx) {
 
 /* ---- options modal (variant chips) ---- */
 function buildOptionsOverlay(product) {
-  // template: the Sunlit "Available options" dialog (the TOP modal of capture 09's stack)
-  const wraps = pickAll('09-available-options-modal', '.brand-portal-modal', 'modal');
-  const tpl = wraps[wraps.length - 1];
+  // template: fresh pick = the Sunlit dialog from capture 09's stack;
+  // editing an already-selected product = capture 35 (Remove product / Save)
+  let tpl;
+  if (product.editing && NF_STATES['35-options-reopen-selected']?.modal) {
+    tpl = frag('35-options-reopen-selected', 'modal').firstElementChild;
+  } else {
+    const wraps = pickAll('09-available-options-modal', '.brand-portal-modal', 'modal');
+    tpl = wraps[wraps.length - 1];
+  }
   const node = tpl.cloneNode(true);
   // populate product identity
   const img = node.querySelector('.brand-portal-modal__content img');
@@ -333,17 +351,17 @@ function buildOptionsOverlay(product) {
 
 function enhanceOptionsOverlay(node, product, api) {
   const v = VARIANTS[product.name] || { values: [] };
-  if (!LIVE.variantSel[product.name]) {
-    LIVE.variantSel[product.name] = new Set(v.values.filter((x) => !(v.unavailable || []).includes(x)));
-  }
-  const set = LIVE.variantSel[product.name];
+  const avail = v.values.filter((x) => !(v.unavailable || []).includes(x));
+  // chips mutate a WORKING COPY — production only commits on Save/Add,
+  // closing the dialog discards
+  const temp = new Set(LIVE.variantSel[product.name] ? [...LIVE.variantSel[product.name]] : avail);
   node.querySelectorAll('.variant-option-chip').forEach((chip) => {
     const val = chip.title;
-    if ((v.unavailable || []).includes(val)) return;
+    if ((v.unavailable || []).includes(val) || chip.disabled) return;
     on(chip, () => {
-      const isActive = set.has(val);
-      if (isActive && set.size === 1) return; // production keeps ≥1 option
-      if (isActive) set.delete(val); else set.add(val);
+      const isActive = temp.has(val);
+      if (isActive && temp.size === 1) return; // production keeps ≥1 option
+      if (isActive) temp.delete(val); else temp.add(val);
       chip.classList.toggle('active', !isActive);
       chip.setAttribute('aria-pressed', !isActive ? 'true' : 'false');
       let check = chip.querySelector('.variant-option-chip__check');
@@ -356,7 +374,8 @@ function enhanceOptionsOverlay(node, product, api) {
   });
   [...node.querySelectorAll('button')].forEach((b) => {
     const t = b.textContent.trim();
-    if (t === 'Add to campaign') on(b, () => api.commitOptions(product));
+    if (t === 'Add to campaign' || t === 'Save') on(b, () => api.commitOptions(product, temp));
+    else if (t === 'Remove product') on(b, () => api.removeProduct(product));
     else if (t === 'Cancel' || (b.getAttribute('aria-label') || '').includes('Close')) on(b, () => api.closeOptions());
   });
   // scrim click (outside the dialog content) closes
@@ -563,8 +582,13 @@ function enhanceBrief(root, opts = {}) {
       if (!section) return;
       const key = ['about', 'note', 'receive', 'postRequirements', 'guidelines']
         .find((k) => section.querySelector(`[data-edit-section="${k}"]`)) || '';
-      if (key === 'receive') { nfNav.go('step3'); return; } // production: Edit reopens the product picker
-      const captured = {
+      if (key === 'receive') {
+        // production: products → reopen the picker; gift card → in-place modal (capture 45)
+        if (opts.gift) openGiftModal(root);
+        else nfNav.go('step3');
+        return;
+      }
+      const captured = opts.gift ? null : {
         about: aboutNoteCaptured ? '16-brief-about-editing' : null,
         note: aboutNoteCaptured ? '17-brief-note-editing' : null,
         postRequirements: '28-brief-edit-postreq',
@@ -707,6 +731,153 @@ function openAddPostModal(root) {
   }
 }
 
+/* ---- gift-card flow (captures 36-48, Aug 19) ---- */
+function enhanceGcOverview(root) {
+  // location filter pills route between the captured filter states
+  [...root.querySelectorAll('.location-filters button')].forEach((pill) => {
+    const t = pill.textContent.trim();
+    on(pill, () => {
+      if (t === 'Tokyo Restaurant') nfNav.go('gc-overview-tokyo');
+      else if (t === 'All locations') nfNav.go('gc-overview');
+      else if (t === 'Brand-wide') {
+        // scroll the Brand-wide group into view on the grouped page
+        const head = [...root.querySelectorAll('*')].find((el) => el.children.length === 0 && el.textContent.trim() === 'Brand-wide');
+        if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+  // group headers expand/collapse (aria-expanded + hidden panel)
+  [...root.querySelectorAll('button[aria-expanded]')].forEach((btn) => {
+    on(btn, () => {
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      const panel = btn.closest('section')?.querySelector(':scope > div, :scope > ul') || btn.nextElementSibling;
+      if (panel) panel.style.display = open ? 'none' : '';
+      const chev = btn.querySelector('[class*="chevron"], svg');
+      if (chev) chev.style.transform = open ? 'rotate(-90deg)' : '';
+    });
+  });
+}
+
+function enhanceGcLocation(root) {
+  const cards = [...root.querySelectorAll('.location-card')];
+  const apply = () => {
+    cards.forEach((c) => {
+      const selected = c.textContent.includes(LIVE.gcLocation || '');
+      c.classList.toggle('location-card--selected', !!LIVE.gcLocation && selected);
+      c.setAttribute('aria-pressed', !!LIVE.gcLocation && selected ? 'true' : 'false');
+    });
+    // the captured CTA is disabled until a location is picked (production gate)
+    const cta = [...root.querySelectorAll('button')].find((b) => b.textContent.includes('Choose Gift Card Amount'));
+    if (cta) {
+      if (LIVE.gcLocation) cta.removeAttribute('disabled');
+      else cta.setAttribute('disabled', '');
+    }
+  };
+  cards.forEach((c) => on(c, () => {
+    LIVE.gcLocation = c.textContent.includes('Tokyo') ? 'Tokyo Restaurant' : 'Paris Restaurant';
+    apply();
+  }));
+  apply();
+}
+
+/* both the wizard page (.gift-card-option) and the brief's gift modal
+   (.draft-gift-card-option) share this logic; the modal styles selection via
+   aria-checked, the wizard via --selected */
+const GC_OPT_SEL = '.gift-card-option, .draft-gift-card-option';
+const gcOptValue = (o) => parseInt((o.textContent.match(/\d+/) || [0])[0], 10);
+
+function gcPatchAmounts(scope, amt) {
+  const label = `$${amt}.00`;
+  [...scope.querySelectorAll('*')].forEach((el) => {
+    if (el.children.length > 0 || el.closest(GC_OPT_SEL)) return;
+    const t = el.textContent.trim();
+    if (/^\$[\d,.]+$/.test(t)) el.textContent = label;
+    else if (/^\$[\d,.]+ per creator$/.test(t)) el.textContent = `${label} per creator`;
+    else if (/\$[\d,.]+ (Benable Collab Studio )?gift card/i.test(t)) el.textContent = t.replace(/\$[\d,.]+/, `$${amt}`);
+  });
+}
+
+function enhanceGcAmount(root, scope) {
+  const area = scope || root;
+  const options = [...area.querySelectorAll(GC_OPT_SEL)];
+  const customTpl = () => pick('42-giftcard-amount-other', '.gift-card-option--custom');
+  const isCustomOpt = (o) => [...o.classList].some((c) => c.endsWith('--custom'));
+  const applySel = () => {
+    options.forEach((o) => {
+      const val = isCustomOpt(o) ? 'other' : gcOptValue(o);
+      const selected = LIVE.gcAmount === val || (isCustomOpt(o) && typeof LIVE.gcAmount === 'number' && ![50, 100, 150].includes(LIVE.gcAmount));
+      o.classList.toggle('gift-card-option--selected', selected && o.classList.contains('gift-card-option'));
+      if (o.getAttribute('role') === 'radio') o.setAttribute('aria-checked', selected ? 'true' : 'false');
+    });
+  };
+  options.forEach((o) => {
+    if (isCustomOpt(o)) {
+      o.__nfOrig = o.innerHTML; // restore target when a preset is re-picked
+      on(o, () => {
+        // selecting Other swaps the label content for the $-input (capture 42)
+        if (!o.querySelector('input')) {
+          const tpl = customTpl();
+          if (tpl) o.innerHTML = tpl.innerHTML;
+        }
+        if (o.classList.contains('gift-card-option')) o.classList.add('gift-card-option--selected');
+        o.setAttribute('aria-checked', 'true');
+        options.filter((x) => x !== o).forEach((x) => { x.classList.remove('gift-card-option--selected'); if (x.getAttribute('role') === 'radio') x.setAttribute('aria-checked', 'false'); });
+        const inp = o.querySelector('input');
+        if (inp && !inp.__nfWired) {
+          inp.__nfWired = true;
+          inp.addEventListener('click', (e) => e.stopPropagation());
+          inp.addEventListener('input', () => {
+            inp.style.width = Math.max(1, inp.value.length) + 'ch';
+            const n = parseInt(inp.value.replace(/[^\d]/g, ''), 10);
+            if (n) { LIVE.gcAmount = n; gcPatchAmounts(area, n); }
+          });
+        }
+        if (inp) inp.focus();
+      });
+    } else {
+      on(o, () => {
+        LIVE.gcAmount = gcOptValue(o) || 100;
+        // restore the "Other" label if the custom input was open
+        const custom = options.find(isCustomOpt);
+        if (custom && custom.querySelector('input') && custom.__nfOrig) custom.innerHTML = custom.__nfOrig;
+        applySel();
+        gcPatchAmounts(area, LIVE.gcAmount);
+      });
+    }
+  });
+  applySel();
+  if (typeof LIVE.gcAmount === 'number') gcPatchAmounts(area, LIVE.gcAmount);
+}
+
+function openGiftModal(root) {
+  document.querySelectorAll('[data-nf-gift]').forEach((el) => el.remove());
+  const html = (NF_STATES['45-giftcard-receive-edit'] || {}).modal;
+  if (!html) return;
+  const holder = document.createElement('div');
+  holder.setAttribute('data-nf-gift', '1');
+  holder.innerHTML = html;
+  (root.closest('.nf') || document.body).appendChild(holder);
+  const close = () => holder.remove();
+  enhanceGcAmount(root, holder);
+  [...holder.querySelectorAll('button')].forEach((b) => {
+    const t = b.textContent.trim();
+    const aria = b.getAttribute('aria-label') || '';
+    if (t === 'Update') on(b, () => {
+      if (typeof LIVE.gcAmount === 'number') gcPatchAmounts(root, LIVE.gcAmount);
+      close();
+    });
+    else if (/close/i.test(aria)) on(b, close);
+  });
+  const wrap = holder.querySelector('.brand-portal-modal') || holder.firstElementChild;
+  if (wrap && !wrap.__nfScrim) {
+    wrap.__nfScrim = true;
+    wrap.addEventListener('click', (e) => {
+      if (!e.target.closest('.brand-portal-modal__content, [role="dialog"]')) { e.stopPropagation(); close(); }
+    });
+  }
+}
+
 /* ---- shell: sidebar active state + account menu (captures 31/32) ---- */
 function syncSidebarActive(rootEl, screen) {
   const live = rootEl.querySelector('aside');
@@ -780,6 +951,9 @@ export default function NewFlow() {
   const pageScreen = isModal ? (LIVE.lastPage && ADV_FAMILY.has(LIVE.lastPage) ? LIVE.lastPage : 'adv') : screen;
   if (!isModal && screen !== 'generating') LIVE.lastPage = screen;
   if (ADV_FAMILY.has(pageScreen)) ensureSets(pageScreen);
+  // track which campaign type the user is walking (gift flow vs product flow)
+  if (GC_FAMILY.has(pageScreen)) LIVE.gcMode = true;
+  else if (['overview', 'overview-completed', 'overview-after', 'step2', 'step3', 'brief', 'draft-resume'].includes(pageScreen) || ADV_FAMILY.has(pageScreen)) LIVE.gcMode = false;
 
   const go = (next) => navigate('/nf/' + next);
 
@@ -795,10 +969,19 @@ export default function NewFlow() {
       force((x) => x + 1);
     },
     closeOptions: () => { LIVE.optionsFor = null; force((x) => x + 1); },
-    commitOptions: (product) => {
+    commitOptions: (product, temp) => {
       const from = LIVE.optionsFor?.from;
       const sel = from === 'grid' ? LIVE.gridSel : LIVE.modalSel;
+      if (temp) LIVE.variantSel[product.name] = temp;
       if (sel) sel.set(product.name, { variants: true });
+      LIVE.optionsFor = null;
+      force((x) => x + 1);
+    },
+    removeProduct: (product) => {
+      const from = LIVE.optionsFor?.from;
+      const sel = from === 'grid' ? LIVE.gridSel : LIVE.modalSel;
+      if (sel) sel.delete(product.name);
+      delete LIVE.variantSel[product.name];
       LIVE.optionsFor = null;
       force((x) => x + 1);
     },
@@ -836,6 +1019,22 @@ export default function NewFlow() {
         sw.setAttribute('aria-checked', isOn ? 'false' : 'true');
         sw.classList.toggle('is-enabled', !isOn);
       });
+    }
+    if ((pageScreen === 'gc-overview' || pageScreen === 'gc-overview-tokyo') && mainEl) enhanceGcOverview(mainEl);
+    if (pageScreen === 'gc-location' && mainEl) enhanceGcLocation(mainEl);
+    if (pageScreen === 'gc-amount' && mainEl) enhanceGcAmount(mainEl);
+    if (pageScreen === 'gc-brief' && mainEl) enhanceBrief(mainEl, { aboutNoteCaptured: false, gift: true });
+    // demo crossover: the other reward type's card is disabled on the captured
+    // page (per-account in production) — re-enable it so both flows are walkable
+    if ((pageScreen === 'step2' || pageScreen === 'gc-step2') && mainEl) {
+      const other = [...mainEl.querySelectorAll('.choice-card')].find((c) =>
+        c.textContent.includes(pageScreen === 'step2' ? 'Gift Card' : 'Gifted Product'));
+      if (other) {
+        other.removeAttribute('disabled');
+        other.classList.remove('choice-card--disabled');
+        [...other.querySelectorAll('*')].find((el) => el.children.length === 0 && el.textContent.trim() === 'Coming soon')?.remove();
+        on(other, () => nfNav.go(pageScreen === 'step2' ? 'gc-step2' : 'step2'));
+      }
     }
     if (!isModal) syncSidebarActive(rootEl, pageScreen);
 
@@ -918,7 +1117,7 @@ export default function NewFlow() {
     // sidebar / logo
     if (el.closest('aside') || el.closest('.mobile-header')) {
       if (txt === 'Campaigns' || aria.toLowerCase().includes('home')) {
-        go(LAUNCHED_FAMILY.has(screen) ? 'overview-after' : 'overview');
+        go(LAUNCHED_FAMILY.has(screen) ? 'overview-after' : LIVE.gcMode ? 'gc-overview' : 'overview');
       } else if (txt === 'Settings') {
         go('settings');
       } else if (aria.toLowerCase().includes('account menu')) {
@@ -942,8 +1141,30 @@ export default function NewFlow() {
         [() => txt === 'Launch now', 'step1'],
       ],
       step1: [
-        [() => txt.includes('Get Started'), 'step2'],
-        [() => txt.includes('Back to Campaigns'), 'overview'],
+        [() => txt.includes('Get Started'), () => go(LIVE.gcMode ? 'gc-step2' : 'step2')],
+        [() => txt.includes('Back to Campaigns'), () => go(LIVE.gcMode ? 'gc-overview' : 'overview')],
+      ],
+      'gc-overview': [
+        [() => txt === 'Completed', 'overview-completed'],
+        [() => txt === 'Finish setup', 'gc-brief'],
+        [() => /Open Campaign/i.test(aria), 'launched'],
+        [() => txt === 'Launch now', 'step1'],
+      ],
+      'gc-step2': [
+        [() => txt.includes('Choose Gift Card Amount'), 'gc-location'],
+        [() => txt === 'Back', 'step1'],
+      ],
+      'gc-location': [
+        [() => txt.includes('Choose Gift Card Amount') && LIVE.gcLocation, 'gc-amount'],
+        [() => txt === 'Back', 'gc-step2'],
+      ],
+      'gc-amount': [
+        [() => txt.includes('Create My Campaign'), 'generating'],
+        [() => txt === 'Back', 'gc-location'],
+      ],
+      'gc-brief': [
+        [() => txt.includes('Find Creators'), 'match'],
+        [() => txt.includes('Back to Gift Card'), 'gc-amount'],
       ],
       step2: [
         [() => txt.includes('Choose Your Product'), 'step3'],
@@ -989,6 +1210,7 @@ export default function NewFlow() {
         [() => txt.includes('Edit Campaign'), 'brief'],
       ],
     };
+    NAV['gc-overview-tokyo'] = NAV['gc-overview'];
     NAV['adv-set1'] = NAV.adv;
     NAV['adv-2sets'] = NAV.adv;
     NAV['adv-who'] = NAV.adv;
@@ -1015,7 +1237,7 @@ export default function NewFlow() {
         <div className="dashboard-body svelte-187rxgr">
           <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: NF_SHELL.sidebar }} />
           {screen === 'generating' ? (
-            <Generating onDone={() => go('brief')} />
+            <Generating onDone={() => go(LIVE.gcMode ? 'gc-brief' : 'brief')} />
           ) : state ? (
             <div ref={mainRef} style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: state.main }} />
           ) : (
