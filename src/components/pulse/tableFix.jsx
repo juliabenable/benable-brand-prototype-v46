@@ -371,9 +371,13 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
                         {face && si === 4
                           ? (state === 'next'
                               ? (rowReviewState(c, scene.mode) === 'changes'
-                                  ? 'We’re resolving your flag — then she posts'
+                                  ? (assetsOf(c, scene.mode).some((a) => a.state === 'changes' && a.fix === 'agreed')
+                                      ? 'Fix agreed — she updates it, then posts'
+                                      : 'We’re resolving your flag — then she posts')
                                   : 'Your review — then she posts')
-                              : 'Approved by you ✓')
+                              : (rowReviewState(c, scene.mode) === 'resolved'
+                                  ? 'Issue resolved with Katie’s team ✓'
+                                  : 'Approved by you ✓'))
                           : state === 'next' && !c.mystery
                             ? (st.next || NEXT_HINTS[scene.mode === 'local' ? 'local' : 'product'][si])
                             : state === 'now'

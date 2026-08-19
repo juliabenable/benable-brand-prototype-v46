@@ -12,6 +12,19 @@
   background: #fff;
 }
 
+/* Every prototype transition swaps captured DOM — kill the page-entry
+   animations so screens don't replay their load choreography ("jumpy
+   refresh"). This file loads BEFORE newflow-production.css so equal-
+   specificity production rules win ties; these use !important on purpose. */
+.nf [class*="animate-page-in"] { animation: none !important; }
+.nf .workspace-content-shell,
+.nf .workspace-content-shell.is-entering {
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+.nf .workspace-route-progress { display: none !important; }
+
 /* Old-era production.css has bare element rules (e.g. p { color: #7a4040 }).
    These guards out-rank them (0,1,0 beats 0,0,1) while staying below every
    scoped .nf rule — the v43.1 reviewModal lesson. */

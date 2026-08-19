@@ -3,7 +3,7 @@ import '../../styles/pulse.css';
 import { DAYS, LOCAL, crewFor } from './pulseData.js';
 import { stageOf, AmineProgress2, AmineRail, StayTuned, CreatorsFound } from './amine.jsx';
 import FixedTable from './tableFix.jsx';
-import { reviewNeeds, getReviewMode, setReviewMode } from './review.jsx';
+import { reviewNeeds, getReviewMode, setReviewMode, setFlagBeat, flagBeat } from './review.jsx';
 
 /*
   Campaign Pulse v34 — single experience (v33's C), kept lean for polishing:
@@ -198,6 +198,25 @@ export default function CampaignPulse() {
         <button type="button" className={rui === 'chat' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => setRui('chat')}>
           Chat
         </button>
+        {/* FLAG DEMO — steps every flagged asset through the resolution
+            beats (Julia, Aug 18: fix agreed → resolved, no re-review; she
+            publishes directly). Appears once something is flagged. */}
+        {review === 'brand' && flagBeat(mode) !== null && (
+          <>
+            <span className="cp-mode-sep" aria-hidden />
+            <span className="cp-scrub-tag">FLAG DEMO</span>
+            {[['flagged', 'Flagged'], ['agreed', 'Fix agreed'], ['resolved', 'Resolved']].map(([beat, label]) => (
+              <button
+                key={beat}
+                type="button"
+                className={flagBeat(mode) === beat ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'}
+                onClick={() => { setFlagBeat(mode, beat); pulse(); }}
+              >
+                {label}
+              </button>
+            ))}
+          </>
+        )}
       </div>}
 
       {phase === 'sourcing' ? (

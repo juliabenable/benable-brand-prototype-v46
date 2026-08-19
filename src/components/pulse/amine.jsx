@@ -9,7 +9,8 @@ import LiveStatus from './LiveStatus.jsx';
    stage 4 — the data row itself never moves. */
 export const stageOf = (c, day, mode = 'product') =>
   day === 30 ? 6
-  : isReviewRow(c) && rowReviewState(c, mode) === 'approved' ? 4
+  /* resolved flags move forward like approvals — she publishes directly */
+  : isReviewRow(c) && ['approved', 'resolved'].includes(rowReviewState(c, mode)) ? 4
   : c.stage;
 
 /* A · Amine — the designer's cohort-funnel page (benable-cohort-funnel repo,

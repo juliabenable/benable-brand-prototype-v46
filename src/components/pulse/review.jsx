@@ -39,13 +39,32 @@ export const setReviewMode = (m) => { reviewMode = m; };
 /* ---- per-row derivations (all presentation flows from these) ----------- */
 export const assetsOf = (c, mode) => reviewFor(mode)[c.name]?.assets ?? [];
 export const isReviewRow = (c) => reviewMode === 'brand' && !!c.draftIn;
-/* 'pending' | 'partial' | 'approved' | 'changes' */
+/* 'pending' | 'partial' | 'approved' | 'changes' | 'resolved'
+   A flagged asset can carry `fix`: 'agreed' (Katie's team + creator settled
+   on the update) → 'resolved' (issue closed; she publishes directly — the
+   brand does NOT re-review, Julia Aug 18). 'resolved' counts like approved
+   for forward motion but keeps its own face — a flag never dies quietly. */
 export const rowReviewState = (c, mode) => {
   const assets = assetsOf(c, mode);
   const undecided = assets.filter((a) => !a.state).length;
   if (undecided === assets.length) return 'pending';
   if (undecided > 0) return 'partial';
-  return assets.some((a) => a.state === 'changes') ? 'changes' : 'approved';
+  if (assets.some((a) => a.state === 'changes' && a.fix !== 'resolved')) return 'changes';
+  return assets.some((a) => a.state === 'changes') ? 'resolved' : 'approved';
+};
+
+/* demo control: step every flagged asset through the resolution beats */
+export const setFlagBeat = (mode, beat) => {
+  Object.values(reviewFor(mode)).forEach(({ assets }) => assets.forEach((a) => {
+    if (a.state === 'changes') {
+      if (beat === 'flagged') delete a.fix;
+      else a.fix = beat; // 'agreed' | 'resolved'
+    }
+  }));
+};
+export const flagBeat = (mode) => {
+  const flagged = Object.values(reviewFor(mode)).flatMap(({ assets }) => assets).filter((a) => a.state === 'changes');
+  return flagged.length === 0 ? null : (flagged[0].fix ?? 'flagged');
 };
 export const reviewNeeds = (c, mode) =>
   isReviewRow(c) && ['pending', 'partial'].includes(rowReviewState(c, mode));
@@ -66,13 +85,19 @@ export const reviewRowFace = (c, mode) => {
     /* Tony's flag model (v43.2): the note went to KATIE'S TEAM, not the
        creator — the row reads as motion in our hands, never amber (the
        ball isn't with the brand) and never a claim about the creator */
-    const flagged = assets.filter((a) => a.state === 'changes');
+    const flagged = assets.filter((a) => a.state === 'changes' && a.fix !== 'resolved');
     const ok = assets.filter((a) => a.state === 'approved');
     const short = (k) => k.replace(/^IG /, '').toLowerCase();
+    /* beat 2 — the team and the creator settled on the update */
+    if (flagged.every((a) => a.fix === 'agreed'))
+      return { status: '✅ Fix agreed — she’s updating it before posting', cta: null, amber: false };
     if (ok.length > 0 && flagged.length === 1)
       return { status: `🚩 Issue on her ${short(flagged[0].kind)} — ${ok.length === 1 ? `${short(ok[0].kind)} approved` : `${ok.length} approved`}`, cta: null, amber: false };
     return { status: '🚩 Issue flagged — Katie’s team is on it', cta: null, amber: false };
   }
+  if (state === 'resolved')
+    /* beat 3 — closed loudly, never quietly; she publishes directly */
+    return { status: '✅ Issue resolved — updated post going live soon', cta: null, amber: false, approved: true };
   return { status: `🎉 ${n === 1 ? `Her ${kinds} is approved` : `All ${n} posts approved`} — going live soon`, cta: null, amber: false, approved: true };
 };
 

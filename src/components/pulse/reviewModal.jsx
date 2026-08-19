@@ -334,14 +334,17 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
 
   const notes = clip.notes ?? [];
 
-  /* sidebar face per creator */
+  /* sidebar face per creator — flags walk the resolution beats */
   const sideFace = (c) => {
     const n = c.assets.length;
     const done = c.assets.filter((a) => a.state).length;
-    const flagged = c.assets.some((a) => a.state === 'changes');
+    const flagged = c.assets.filter((a) => a.state === 'changes');
     if (done === 0) return { line: `${n} draft${n > 1 ? 's' : ''} to review`, state: 'pending' };
     if (done < n) return { line: `${done} of ${n} reviewed`, state: 'pending' };
-    return { line: flagged ? 'Reviewed — issue flagged' : 'Reviewed', state: flagged ? 'flagged' : 'done' };
+    if (flagged.length === 0) return { line: 'Reviewed', state: 'done' };
+    if (flagged.every((a) => a.fix === 'resolved')) return { line: 'Issue resolved', state: 'done' };
+    if (flagged.every((a) => a.fix === 'agreed')) return { line: 'Fix agreed', state: 'flagged' };
+    return { line: 'Reviewed — issue flagged', state: 'flagged' };
   };
 
   return createPortal(
@@ -500,13 +503,18 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
               <div className="rvm-panel-copy">
                 <h2 className="rvm-panel-h">
                   {decided === 'approved' ? 'Approved 🎉'
-                    : decided === 'changes' ? 'Issue flagged'
+                    : decided === 'changes' ? (clip.fix === 'resolved' ? 'Issue resolved ✅' : clip.fix === 'agreed' ? 'Fix agreed' : 'Issue flagged')
                     : 'Pre-approved, ready for your final review'}
                 </h2>
                 <p className="rvm-panel-hsub">
                   {decided === 'approved' ? `${name} can schedule this post — we’ll track it for you.`
-                    : decided === 'changes' ? 'Our team is on it — we’ll review and keep you posted.'
-                    : 'Katie’s team checked this draft against your brief before it reached you.'}
+                    : decided === 'changes'
+                      ? (clip.fix === 'resolved'
+                          ? `We worked it out with ${name} — her updated post goes live soon.`
+                          : clip.fix === 'agreed'
+                            ? `Katie’s team walked it through with ${name} — she’s updating it before posting.`
+                            : 'Our team is on it — we’ll review and keep you posted.')
+                      : 'Katie’s team checked this draft against your brief before it reached you.'}
                 </p>
 
                 <div className="rvm-precheck">
@@ -550,7 +558,13 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
                   <p className="rvm-footer-status rvm-footer-status-approved"><strong>🎉 </strong>Approved</p>
                 ) : decided === 'changes' ? (
                   <p className="rvm-footer-status rvm-footer-status-sent">
-                    <strong>Issue flagged </strong>for our team — we’ll review and keep you posted.
+                    {clip.fix === 'resolved' ? (
+                      <><strong>Issue resolved </strong>— her updated post goes live soon.</>
+                    ) : clip.fix === 'agreed' ? (
+                      <><strong>Fix agreed </strong>— {name} is updating it before posting.</>
+                    ) : (
+                      <><strong>Issue flagged </strong>for our team — we’ll review and keep you posted.</>
+                    )}
                   </p>
                 ) : (
                   <>
