@@ -18,6 +18,23 @@ into `src/data/newFlowHtml.js` NF_SHELL + NF_STATES{main,modal}).
 The old-chrome prototype (`/brand/tonypikora/...`) is untouched; `/nf` and
 `/nf/:screen` are additive routes. Entry: `/nf` → campaigns overview.
 
+**Gift-card campaign type (Aug 19 evening, captures 35-48):** Julia flipped the
+demo account to gift-card mode on production; the wizard becomes Gift Card →
+location ("Which location is this for?", Tokyo/Paris demo restaurants) →
+amount ($50/$100 Best/$150/Other w/ black card art) → gift brief whose
+receive-Edit opens a card-value MODAL (Update; .draft-gift-card-* classes —
+NOT the wizard's .gift-card-*), and the campaigns overview grows location
+filter pills + location-grouped campaign stacks. Prototype routes: gc-overview
+/ gc-overview-tokyo / gc-step2 / gc-location / gc-amount / gc-brief;
+LIVE.gcMode steers step1/generating/sidebar between flows. Product step2 was
+upgraded to capture 36 (adds "UGC for Your Brand" + "Hybrid" coming-soon
+cards). DEMO-ONLY deviation: the other reward type's disabled card on each
+step2 is re-enabled as a flow crossover (production enables one per account).
+Capture 35 also fixed product options: clicking a SELECTED variant product
+REOPENS its modal w/ saved chips + "Remove product"/"Save" footer; chip edits
+commit on Save only. Amount parsing gotcha: "$50.00" labels — parse the first
+digit group, never strip-all-digits (5000!).
+
 **Screens:** overview / overview-completed / overview-after · step1 → step2 →
 step3 (product grid) · adv (advanced sets builder) + m-add modal + options
 modal · generating (interstitial) · brief (AI campaign brief, inline editing)
