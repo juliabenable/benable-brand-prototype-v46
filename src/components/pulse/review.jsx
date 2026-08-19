@@ -63,8 +63,15 @@ export const reviewRowFace = (c, mode) => {
     return { status: `👀 ${done} of ${n} posts reviewed — ${n - done} to go`, cta: 'Finish review', amber: true };
   }
   if (state === 'changes') {
-    const chg = assets.filter((a) => a.state === 'changes').length;
-    return { status: `✏️ ${chg === 1 ? 'One tweak' : `${chg} tweaks`} sent — she’s re-editing`, cta: null, amber: false };
+    /* Tony's flag model (v43.2): the note went to KATIE'S TEAM, not the
+       creator — the row reads as motion in our hands, never amber (the
+       ball isn't with the brand) and never a claim about the creator */
+    const flagged = assets.filter((a) => a.state === 'changes');
+    const ok = assets.filter((a) => a.state === 'approved');
+    const short = (k) => k.replace(/^IG /, '').toLowerCase();
+    if (ok.length > 0 && flagged.length === 1)
+      return { status: `🚩 Issue on her ${short(flagged[0].kind)} — ${ok.length === 1 ? `${short(ok[0].kind)} approved` : `${ok.length} approved`}`, cta: null, amber: false };
+    return { status: '🚩 Issue flagged — Katie’s team is on it', cta: null, amber: false };
   }
   return { status: `🎉 ${n === 1 ? `Her ${kinds} is approved` : `All ${n} posts approved`} — going live soon`, cta: null, amber: false, approved: true };
 };

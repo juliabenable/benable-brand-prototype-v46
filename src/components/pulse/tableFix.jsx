@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { crewFor, PHOTOS, TIMELINES, CASTING_TIMELINE, STAGE_LABELS, SPOTS, LOCAL, NEXT_HINTS, DECLINED } from './pulseData.js';
 import { stageOf, stagesFor, AM_FILTER_LABEL, ActionModal } from './amine.jsx';
-import { ReviewPopup, reviewPopupDue, dismissReviewPopup, assetsOf, isReviewRow, reviewRowFace, reviewNeeds } from './review.jsx';
+import { ReviewPopup, reviewPopupDue, dismissReviewPopup, assetsOf, isReviewRow, reviewRowFace, reviewNeeds, rowReviewState } from './review.jsx';
 import { ChatReview } from './reviewChat.jsx';
 import { ReviewModal } from './reviewModal.jsx';
 import LiveStatus from './LiveStatus.jsx';
@@ -363,9 +363,14 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
                           (Julia, Jul 28 — no "shoot confirmed" on passed steps) */}
                       <div className="cp-hist-detail">
                         {/* brand-review rows own stage 4 — the drawer says so
-                           instead of the Katie-checks line (Julia, Aug 10) */}
+                           instead of the Katie-checks line (Julia, Aug 10);
+                           flagged rows tell the resolution story (Aug 18) */}
                         {face && si === 4
-                          ? (state === 'next' ? 'Your review — then she posts' : 'Approved by you ✓')
+                          ? (state === 'next'
+                              ? (rowReviewState(c, scene.mode) === 'changes'
+                                  ? 'We’re resolving your flag — then she posts'
+                                  : 'Your review — then she posts')
+                              : 'Approved by you ✓')
                           : state === 'next' && !c.mystery
                             ? (st.next || NEXT_HINTS[scene.mode === 'local' ? 'local' : 'product'][si])
                             : state === 'now'

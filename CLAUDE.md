@@ -1,50 +1,5 @@
 # benable-brand-prototype-v46 — Campaign Pulse
 
-**v46 (Aug 18) — fresh iteration base, snapshot of v45** (three-pane review
-shell + both polish rounds, Tony-scale type). v45 stays frozen at its own
-URL; new work goes here. Dev: launch `brand-prototype-v46`, port 5224. Live:
-https://juliabenable.github.io/benable-brand-prototype-v46/
-Deploy: `bash scripts/ship.sh "msg"`. Everything below is inherited history.
-
-## /nf — FIRST-PART FLOW on the NEW production chrome (Aug 18 capture)
-
-The create-campaign flow captured from production (benable.com, demo brand
-`benable-collab-studio`, Aug 18 2026 — the app's NEW design: Inter, campaign
-cards, sets builder, AI brief) rebuilt as clickable captured-DOM states.
-**Entry: `/nf`** (campaigns overview) — every screen deep-links as
-`/nf/:screen`: overview · overview-completed · overview-after · step1 · step2 ·
-step3 · adv · adv-who · adv-set1 · adv-2sets · m-add · m-add2 · m-opts ·
-m-add3 · m-add-dim · brief · brief-edit-about · brief-edit-note ·
-draft-resume · match · match-how · generating · launch-t0 · launched ·
-launched-content.
-
-- Raw captures: `captures/sources-aug18/` (24 sha-verified full-DOM states +
-  `css/` + its own README with the flow map). Recapture pipeline is in the
-  memory note `browser-pane-capture-pipeline`.
-- `scripts/newflow-build.py` regenerates BOTH artifacts from the captures:
-  `src/data/newFlowHtml.js` (shell + per-state main/modal fragments,
-  root-relative asset URLs rewritten to production) and
-  `src/styles/newflow-production.css` (all 20 production sheets concatenated
-  and **scoped under `.nf`** — html/body/:root map onto .nf; @import dropped;
-  National2Narrow @font-face stripped to avoid CORS noise).
-- `src/pages/NewFlow.jsx` = the state machine: captured shell + main + modal
-  layers via dangerouslySetInnerHTML (display:contents wrappers), text-matched
-  click transitions per screen (table `T`), reconstructed AI-brief interstitial
-  (`generating` — the only non-captured screen; production DOM was replaced
-  too fast to stash), auto-advancing `launch-t0` transition frame.
-- `src/styles/newflow-extra.css` = host isolation (.nf is position:fixed
-  inset-0, plays the captured <body> role) + `:where` inherit guards that
-  out-rank the OLD era's bare element rules (the v43.1 lesson).
-- **Two CSS eras coexist** (old captured chrome + this). They share class
-  names (.brand-dashboard, .sidebar…), so old class rules can leak properties
-  the scoped CSS doesn't set — today that's only font-family: the old
-  National 2 Narrow @font-faces 404 in this repo (always have), so text falls
-  back to the system stack, which IS the new design's font. Don't add National
-  font files, and keep new-css element rules winning via the .nf prefix.
-- Known cosmetic: React warns about captured `inert=""` attributes (treated
-  false — harmless); production gradient/product images hotlink benable.com +
-  Shopify CDN.
-
 **v45 (Aug 18) — fresh iteration base, snapshot of v43 at v43.2** (Amine's
 review modal default + Tony's flag-an-issue copy merged). v43 stays frozen at
 its own URL as the shared ship; new work goes here. Dev: launch
@@ -91,7 +46,31 @@ inline-SVG tick · amber ! for flagged — the ring-in-a-ring draft-approved.svg
 read weird) in a fixed 22px slot so tick and amber dot share an axis; flag
 sheet now centers in the RIGHT-HAND PANEL BOX (grid scrim align-center
 justify-end pr16 + pt76 header offset, card 368px) — not the whole shell —
-and the footer rail line/tint before "Send to our team" is gone.
+and the footer rail line/tint before "Send to our team" is gone. ROUND 3
+(Julia, Aug 18 latest): header hierarchy fixed (title lh26 + 4px to the
+14/18 sub, head 80px, sidebar padding 16 so title/label-text/avatars all sit
+on the 28px left axis) · "Every draft reviewed" CELEBRATION REMOVED — the
+last decision's flash closes the shell and the table's derived states carry
+the ending (celebrate/confetti CSS pruned) · flag sheet rides LOW in the
+panel (align-end + 16px insets) · the opening draft appears IN PLACE — the
+slide-in is gated behind an rvm-anim class set only on draft/creator changes
+(lastKey ref; the first mount arriving from the side read as a loading
+state) · media pre-warmed (posters from the dashboard, clips preload=auto on
+mount) · self-check extras: pill arrows only render when a creator has >1
+draft, and the pill's decision stamp is the same single-circle tick language
+as the sidebar (ring-in-ring img retired everywhere). FLAGGED-ROW TRACKER
+FACE (Option A, Julia-approved Aug 18): the old "✏️ One tweak sent — she's
+re-editing" claimed creator behavior and the wrong recipient under Tony's
+flag model — now flagged rows read as motion in KATIE'S TEAM's hands, never
+amber, no CTA: all-flagged "🚩 Issue flagged — Katie's team is on it",
+mixed "🚩 Issue on her story — reel approved" (reviewRowFace); stage stays
+Visited; drawer stage-4 next-hint for flagged rows = "We're resolving your
+flag — then she posts" (tableFix); the drawer's "See what you sent ↗" stays
+the door. Header light goes green when only flags remain (ball is with
+Benable). NOT built: the resolution return-state (new draft back in →
+amber review face again) — no demo data for it yet. Tracker speaks
+"Katie's team" while Tony's modal says "our team" — flagged to Julia,
+left as-is.
 
 
 **v43.1 (Aug 17) — review direction C: AMINE'S MODAL, the new default.** The
@@ -198,6 +177,6 @@ Brand-portal prototype: captured production HTML + React overlays. v37 = Julia's
 - A tile row never shows a zero — it shows a sentence about what's happening.
 
 ## Dev + ship
-- Dev: launch.json name `brand-prototype-v46`, port 5224. Demo page: `/brand/tonypikora/campaigns/46` (campaign) and `/brand/tonypikora/campaigns` (brand overview).
+- Dev: launch.json name `brand-prototype-v45`, port 5223. Demo page: `/brand/tonypikora/campaigns/46` (campaign) and `/brand/tonypikora/campaigns` (brand overview).
 - Deploy: `bash scripts/ship.sh "commit message"` — builds, commits, pushes, watches the Pages run, curls the live URL.
-- Live: https://juliabenable.github.io/benable-brand-prototype-v46/
+- Live: https://juliabenable.github.io/benable-brand-prototype-v45/
