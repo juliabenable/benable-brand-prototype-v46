@@ -1,5 +1,12 @@
 # benable-brand-prototype-v46 — Campaign Pulse
 
+**v46 (Aug 18) — fresh iteration base, snapshot of v45** (three-pane review
+shell + all polish rounds + Option-A flagged-row faces, kept in lockstep with
+v45 through Julia's review night). v45 stays frozen at its own URL; new work
+goes here. Dev: launch `brand-prototype-v46`, port 5224. Live:
+https://juliabenable.github.io/benable-brand-prototype-v46/
+Deploy: `bash scripts/ship.sh "msg"`. Everything below is inherited history.
+
 **v45 (Aug 18) — fresh iteration base, snapshot of v43 at v43.2** (Amine's
 review modal default + Tony's flag-an-issue copy merged). v43 stays frozen at
 its own URL as the shared ship; new work goes here. Dev: launch
@@ -177,6 +184,6 @@ Brand-portal prototype: captured production HTML + React overlays. v37 = Julia's
 - A tile row never shows a zero — it shows a sentence about what's happening.
 
 ## Dev + ship
-- Dev: launch.json name `brand-prototype-v45`, port 5223. Demo page: `/brand/tonypikora/campaigns/46` (campaign) and `/brand/tonypikora/campaigns` (brand overview).
+- Dev: launch.json name `brand-prototype-v46`, port 5224. Demo page: `/brand/tonypikora/campaigns/46` (campaign) and `/brand/tonypikora/campaigns` (brand overview).
 - Deploy: `bash scripts/ship.sh "commit message"` — builds, commits, pushes, watches the Pages run, curls the live URL.
-- Live: https://juliabenable.github.io/benable-brand-prototype-v45/
+- Live: https://juliabenable.github.io/benable-brand-prototype-v46/
