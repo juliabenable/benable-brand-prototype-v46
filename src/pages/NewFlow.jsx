@@ -740,9 +740,20 @@ function enhanceGcOverview(root) {
       if (t === 'Tokyo Restaurant') nfNav.go('gc-overview-tokyo');
       else if (t === 'All locations') nfNav.go('gc-overview');
       else if (t === 'Brand-wide') {
-        // scroll the Brand-wide group into view on the grouped page
-        const head = [...root.querySelectorAll('*')].find((el) => el.children.length === 0 && el.textContent.trim() === 'Brand-wide');
-        if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // filter to brand-wide campaigns (same treatment as the Tokyo pill,
+        // synthesized from the grouped page — the state wasn't captured)
+        [...root.querySelectorAll('.location-filters button')].forEach((p) => {
+          const active = p === pill;
+          p.classList.toggle('active', active);
+          p.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        [...root.querySelectorAll('section')].forEach((sec) => {
+          const head = [...sec.querySelectorAll('*')].find((el) => el.children.length === 0 && /^(Tokyo Restaurant|Brand-wide)$/.test(el.textContent.trim()));
+          if (!head) return;
+          const isTokyoGroup = head.textContent.trim() === 'Tokyo Restaurant';
+          if (sec.querySelector('.location-filters')) return; // never hide the page wrapper
+          sec.style.display = isTokyoGroup ? 'none' : '';
+        });
       }
     });
   });
