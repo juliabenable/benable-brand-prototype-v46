@@ -7,6 +7,60 @@ goes here. Dev: launch `brand-prototype-v46`, port 5224. Live:
 https://juliabenable.github.io/benable-brand-prototype-v46/
 Deploy: `bash scripts/ship.sh "msg"`. Everything below is inherited history.
 
+## /nf — the NEW brand-portal first-part flow (Aug 18-19 2026 capture)
+
+**What:** production's REDESIGNED brand portal (new chrome: Inter, card
+overview, banked "Launch now", create wizard, AI brief, creator matching),
+captured live from benable.com as `benable-collab-studio` and rebuilt as a
+fully interactive prototype. 26 captured states in `captures/sources-aug18/`
+(each `NN-name.html` = full doc; extracted by `scripts/extract_newflow.py`
+into `src/data/newFlowHtml.js` NF_SHELL + NF_STATES{main,modal}).
+The old-chrome prototype (`/brand/tonypikora/...`) is untouched; `/nf` and
+`/nf/:screen` are additive routes. Entry: `/nf` → campaigns overview.
+
+**Screens:** overview / overview-completed / overview-after · step1 → step2 →
+step3 (product grid) · adv (advanced sets builder) + m-add modal + options
+modal · generating (interstitial) · brief (AI campaign brief, inline editing)
+· draft-resume · match + match-how · launch-t0 → launched / launched-content.
+
+**Architecture (`src/pages/NewFlow.jsx`):** base page (captured `<main>` via
+dangerouslySetInnerHTML) + modal overlays (captured body-tail fragments) —
+opening a modal never swaps the page behind it. A live-interaction layer
+(enhance*) mutates the captured DOM directly: product selection w/ check
+indicators, variant chips, LIVE.sets-driven sets builder (cards + rail
+templated at runtime from captured fragments via frag()/pick()), who-gets
+menus, pick-count + creator-count steppers, tier radios, search filters,
+select-all, brief Edit/Done section swaps (capture 15↔16/17) with
+contenteditable + persisted text. Router click-handler = NAVIGATION ONLY
+(text-matched per-screen tables); interactive elements stopPropagation.
+`window.__nfLive` = debug handle. CSS: `newflow-production.css` (~7.1k rules,
+20 route files scoped under `.nf` by the extractor) + `newflow-extra.css`
+(loads FIRST so production wins specificity ties; kills page-entry animations;
+`.nf.nf.nf` structural pins for height/scroll).
+
+**Gotchas:**
+- overrides.css's `:has(.draft-review-root)` page-scroll unlock (review-shell
+  work) also matches the captured brief page inside .nf — the `.nf.nf.nf`
+  !important pins in newflow-extra.css restore the inner-scroll chain
+  (dashboard 100vh → body → workspace-content-shell auto → workflow-page 100%
+  → workspace-grid scrolls). Don't weaken them.
+- The set-card "Add Products" tile is ITSELF a `__product-entry` wrapping
+  `.product-set-card__add-products` — entry wipes must skip it.
+- Brief sections: `data-edit-section` markers live on SUBsections; always
+  anchor swaps on `section.draft-card`, and pick capture-16/17's card by its
+  Done button. draft-resume/match use generic in-place editing only (their
+  content ≠ capture 15).
+- Variant data: Sunlit (Shade) + Moonmilk (Tint) are real production options;
+  other products' options in VARIANTS are plausible demo values.
+- Known inert-by-design (production behavior not captured — login was lost):
+  About-edit "Add post" tile, launched "Shopify fulfillment" chip, sidebar
+  Settings/UGC/Push Alerts/Brand Intelligence + account menu (new-chrome
+  pages never captured). Grab these in a 5-min re-login capture pass if
+  needed — the stash/pump toolkit recipe is in memory
+  (reference_browser_pane_capture_pipeline).
+- Captured pages carry `benable-collab-studio` real demo data (Shopify CDN
+  product images, brand logo) — remote assets, need network.
+
 **v45 (Aug 18) — fresh iteration base, snapshot of v43 at v43.2** (Amine's
 review modal default + Tony's flag-an-issue copy merged). v43 stays frozen at
 its own URL as the shared ship; new work goes here. Dev: launch

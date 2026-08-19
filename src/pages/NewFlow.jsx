@@ -111,6 +111,7 @@ const PAGES = {
   'launch-t0': '22-launch-t0',
   launched: '23-launch-t1',
   'launched-content': '25-launched-content-tab',
+  settings: '31-settings',
   generating: null,
 };
 // modal overlay routes -> which captured tail supplies the overlay
@@ -547,35 +548,42 @@ function enhanceMatching(root) {
 }
 
 /* ---- brief inline editing ----
-   useCaptured=false on pages whose content differs from the captured brief
-   (draft-resume, match) — their sections must never be swapped for capture-15
-   content, so they get the generic in-place editable treatment instead. */
-function enhanceBrief(root, useCaptured = true) {
-  const editStates = useCaptured ? { about: '16-brief-about-editing', note: '17-brief-note-editing' } : {};
+   Every section's Edit maps to production behavior (Aug 19 capture round):
+   about/note swap to captures 16/17 (brief page only — their content is that
+   campaign's), postRequirements/guidelines swap to captures 28/29 (content is
+   campaign-neutral, shared by brief AND draft-resume), receive NAVIGATES to
+   the product picker (that's what production does). Done restores the
+   ORIGINAL live node, so each page keeps its own content. */
+function enhanceBrief(root, opts = {}) {
+  const aboutNoteCaptured = opts.aboutNoteCaptured !== false;
   root.querySelectorAll('button').forEach((btn) => {
-    const label = btn.textContent.trim();
-    if (label !== 'Edit') return;
+    if (btn.textContent.trim() !== 'Edit') return;
     on(btn, () => {
-      // anchor on the CARD-level section — outer wrapper sections also
-      // contain the data-edit markers as descendants
       const section = btn.closest('section.draft-card');
       if (!section) return;
-      const key = section.querySelector('[data-edit-section="about"]') ? 'about'
-        : section.querySelector('[data-edit-section="note"]') ? 'note' : '';
-      const srcState = editStates[key];
+      const key = ['about', 'note', 'receive', 'postRequirements', 'guidelines']
+        .find((k) => section.querySelector(`[data-edit-section="${k}"]`)) || '';
+      if (key === 'receive') { nfNav.go('step3'); return; } // production: Edit reopens the product picker
+      const captured = {
+        about: aboutNoteCaptured ? '16-brief-about-editing' : null,
+        note: aboutNoteCaptured ? '17-brief-note-editing' : null,
+        postRequirements: '28-brief-edit-postreq',
+        guidelines: '29-brief-edit-guidelines',
+      }[key];
       let replacement = null;
-      if (srcState) {
+      if (captured) {
         // the edit-state capture has exactly one card carrying a Done button
-        replacement = pickAll(srcState, 'section.draft-card').find((s) =>
+        replacement = pickAll(captured, 'section.draft-card').find((s) =>
           [...s.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')
         );
       }
       if (replacement) {
         const node = replacement.cloneNode(true);
+        const original = section;
         section.replaceWith(node);
-        wireEditingSection(root, node, key);
+        wireEditingSection(root, node, key, original);
       } else {
-        // generic sections: one toggle handler flips label + editability
+        // sections without a captured edit state: toggle editability in place
         const editing = btn.textContent.trim() === 'Edit';
         if (editing) {
           btn.textContent = 'Done';
@@ -589,37 +597,150 @@ function enhanceBrief(root, useCaptured = true) {
   });
 }
 
-function wireEditingSection(root, node, key) {
-  // captured edit-state card: make the editor spans truly editable + wire Done
+function wireEditingSection(root, node, key, original) {
   const FIELD = key === 'about' ? 'about_brand' : 'note_text';
   node.querySelectorAll('span[style*="font-family"], [contenteditable]').forEach((s) => { s.contentEditable = 'true'; });
+
+  // note photo ✕
   const photoX = node.querySelector('button[aria-label*="Remove custom note photo"]');
   if (photoX) on(photoX, () => { (photoX.closest('figure, [class*="photo"], [class*="avatar"]') || photoX.parentElement).remove(); });
+
+  // list-row dismiss ✕ (ideas / suggestions / dos / don'ts): icon-only buttons in text rows
+  [...node.querySelectorAll('button')].forEach((b) => {
+    if (b.textContent.trim() !== '' || !b.querySelector('svg') || b === photoX) return;
+    if (b.closest('.draft-post-platform-option, .draft-post-platform-chip')) return;
+    const row = b.parentElement;
+    if (row && row.textContent.trim()) on(b, () => row.remove());
+  });
+
+  // "+ Add an idea / a suggestion / a do / a don't"
+  [...node.querySelectorAll('button.draft-list-add')].forEach((add) => {
+    on(add, () => {
+      const rowTpl = add.previousElementSibling;
+      if (!rowTpl) return;
+      const row = rowTpl.cloneNode(true);
+      const textEl = [...row.querySelectorAll('*')].find((el) => el.children.length === 0 && el.textContent.trim());
+      if (textEl) { textEl.textContent = ''; textEl.contentEditable = 'true'; }
+      const x = [...row.querySelectorAll('button')].find((bb) => bb.textContent.trim() === '' && bb.querySelector('svg'));
+      if (x) { x.__nfWired = false; on(x, () => row.remove()); }
+      add.before(row);
+      if (textEl) textEl.focus();
+    });
+  });
+
+  // platform choice (Creator's choice / TikTok only / Instagram only)
+  const platforms = [...node.querySelectorAll('.draft-post-platform-option, .draft-post-platform-chip')];
+  platforms.forEach((card) => {
+    on(card, () => {
+      platforms.forEach((c) => {
+        const selected = c === card;
+        [...c.classList].filter((cl) => cl.endsWith('--selected')).forEach((cl) => c.classList.remove(cl));
+        c.querySelectorAll('[class*="draft-post-platform-radio"]').forEach((r) => {
+          [...r.classList].filter((cl) => cl.endsWith('--selected')).forEach((cl) => r.classList.remove(cl));
+        });
+        if (selected) {
+          c.classList.add((c.classList.contains('draft-post-platform-chip') ? 'draft-post-platform-chip' : 'draft-post-platform-option') + '--selected');
+          const r = c.querySelector('[class*="draft-post-platform-radio"]');
+          if (r) r.classList.add('draft-post-platform-radio--selected');
+        }
+        c.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+    });
+  });
+
+  // "Add post" tile → production's Add-a-post modal (capture 30)
+  const addTile = node.querySelector('.draft-recent-post-add-tile, button[aria-label="Add post"]');
+  if (addTile) on(addTile, () => openAddPostModal(root));
+
   const applyEdits = () => {
     const span = node.querySelector(`[data-edit-field="${FIELD}"] span[contenteditable], [data-edit-field="${FIELD}"][contenteditable]`)
       || node.querySelector('span[contenteditable]');
-    if (span) LIVE.briefEdits[key] = span.textContent;
+    if (span && (key === 'about' || key === 'note')) LIVE.briefEdits[key] = span.textContent;
   };
   [...node.querySelectorAll('button')].forEach((b) => {
     if (b.textContent.trim() === 'Done') {
       on(b, () => {
         applyEdits();
-        const viewTpl = pickAll('15-brief-review-full', 'section.draft-card').find((s) =>
-          s.querySelector(`[data-edit-section="${key}"]`)
-        );
-        if (!viewTpl) return;
-        const view = viewTpl.cloneNode(true);
-        if (LIVE.briefEdits[key]) {
-          const body = view.querySelector(`[data-edit-field="${FIELD}"] p`)
-            || view.querySelector(`[data-edit-field="${FIELD}"]`)
-            || view.querySelector('p');
+        if (LIVE.briefEdits[key] && original) {
+          const body = original.querySelector(`[data-edit-field="${FIELD}"] p`)
+            || original.querySelector(`[data-edit-field="${FIELD}"]`)
+            || original.querySelector('p');
           if (body) body.textContent = LIVE.briefEdits[key];
         }
-        node.replaceWith(view);
-        enhanceBrief(root);
+        node.replaceWith(original);
       });
     }
   });
+}
+
+function openAddPostModal(root) {
+  document.querySelectorAll('[data-nf-addpost]').forEach((el) => el.remove());
+  const html = (NF_STATES['30-brief-about-addpost'] || {}).modal;
+  if (!html) return;
+  const holder = document.createElement('div');
+  holder.setAttribute('data-nf-addpost', '1');
+  holder.innerHTML = html;
+  (root.closest('.nf') || document.body).appendChild(holder);
+  const close = () => holder.remove();
+  [...holder.querySelectorAll('button')].forEach((b) => {
+    const t = b.textContent.trim();
+    const aria = b.getAttribute('aria-label') || '';
+    if (t === 'Cancel' || /close/i.test(aria)) on(b, close);
+    else if (t === 'Add post') on(b, close); // prototype: adding closes without persisting
+  });
+  const input = holder.querySelector('input');
+  const addBtn = [...holder.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Add post');
+  if (input && addBtn && !input.__nfWired) {
+    input.__nfWired = true;
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('input', () => {
+      if (input.value.trim()) addBtn.removeAttribute('disabled');
+      else addBtn.setAttribute('disabled', '');
+    });
+  }
+  const wrap = holder.querySelector('.brand-portal-modal') || holder.firstElementChild;
+  if (wrap && !wrap.__nfScrim) {
+    wrap.__nfScrim = true;
+    wrap.addEventListener('click', (e) => {
+      if (!e.target.closest('.brand-portal-modal__content, [role="dialog"]')) { e.stopPropagation(); close(); }
+    });
+  }
+}
+
+/* ---- shell: sidebar active state + account menu (captures 31/32) ---- */
+function syncSidebarActive(rootEl, screen) {
+  const live = rootEl.querySelector('aside');
+  if (!live) return;
+  const srcHtml = screen === 'settings' ? (NF_STATES['31-settings'] || {}).sidebar : NF_SHELL.sidebar;
+  if (!srcHtml) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = srcHtml;
+  ['campaigns', 'settings', 'ugc', 'alerts', 'intelligence'].forEach((seg) => {
+    const src = tmp.querySelector(`a[href$="/${seg}"]`);
+    const dst = live.querySelector(`a[href$="/${seg}"]`);
+    if (src && dst) dst.className = src.className;
+  });
+}
+
+function toggleNfAccountMenu(rootEl) {
+  const live = rootEl.querySelector('aside');
+  if (!live) return;
+  const existing = live.querySelector('[data-nf-acctmenu]');
+  if (existing) { existing.remove(); return; }
+  const sb = (NF_STATES['32-account-menu-open'] || {}).sidebar;
+  if (!sb) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = sb;
+  const brandCard = tmp.querySelector('.sidebar-brand-card');
+  const menu = brandCard ? brandCard.previousElementSibling : null;
+  if (!menu) return;
+  const clone = menu.cloneNode(true);
+  clone.setAttribute('data-nf-acctmenu', '1');
+  const liveCard = live.querySelector('.sidebar-brand-card');
+  if (!liveCard) return;
+  liveCard.before(clone);
+  const out = [...clone.querySelectorAll('button')].find((b) => b.textContent.includes('Log out'));
+  if (out) on(out, () => clone.remove()); // log out stays inert in the prototype
 }
 
 /* ================= the component ================= */
@@ -702,10 +823,21 @@ export default function NewFlow() {
     }
     if ((pageScreen === 'match' || pageScreen === 'match-how') && mainEl) {
       enhanceMatching(mainEl);
-      enhanceBrief(mainEl, false); // the Target-creator card's Edit → in-place editing
+      enhanceBrief(mainEl, { aboutNoteCaptured: false }); // the Target-creator card's Edit → in-place editing
     }
-    if (pageScreen === 'brief' && mainEl) enhanceBrief(mainEl, true);
-    if (pageScreen === 'draft-resume' && mainEl) enhanceBrief(mainEl, false); // different campaign content — never swap capture-15 sections in
+    if (pageScreen === 'brief' && mainEl) enhanceBrief(mainEl);
+    // draft-resume: different campaign's about/note text — those two stay
+    // in-place-editable, but postreq/guidelines/receive use the real captures
+    if (pageScreen === 'draft-resume' && mainEl) enhanceBrief(mainEl, { aboutNoteCaptured: false });
+    if (LAUNCHED_FAMILY.has(pageScreen) && mainEl) {
+      const sw = mainEl.querySelector('.sourcing-queue-fulfillment-toggle');
+      if (sw) on(sw, () => {
+        const isOn = sw.getAttribute('aria-checked') === 'true';
+        sw.setAttribute('aria-checked', isOn ? 'false' : 'true');
+        sw.classList.toggle('is-enabled', !isOn);
+      });
+    }
+    if (!isModal) syncSidebarActive(rootEl, pageScreen);
 
     const overlayEl = overlayRef.current;
     if (isModal && overlayEl) {
@@ -787,6 +919,10 @@ export default function NewFlow() {
     if (el.closest('aside') || el.closest('.mobile-header')) {
       if (txt === 'Campaigns' || aria.toLowerCase().includes('home')) {
         go(LAUNCHED_FAMILY.has(screen) ? 'overview-after' : 'overview');
+      } else if (txt === 'Settings') {
+        go('settings');
+      } else if (aria.toLowerCase().includes('account menu')) {
+        toggleNfAccountMenu(rootRef.current);
       }
       return;
     }

@@ -85,6 +85,11 @@ for fn in sorted(os.listdir(SRC)):
         'main': absolutize(main),
         'modal': absolutize(modal_inner) if modal_inner else None,
     }
+    # settings/account-menu states also carry sidebar deltas (active item, menu popover)
+    if key.startswith(('31-', '32-')):
+        aside = outer(doc, lambda t, a: t == 'aside' and 'brand-workspace-sidebar' in a)
+        if aside:
+            states[key]['sidebar'] = absolutize(aside)
     report.append(f'{key}: main={len(main)}b modal={len(modal_inner) if modal_inner else 0}b')
     if key.startswith('01-'):
         shell['header'] = absolutize(outer(doc, lambda t, a: t == 'header' and 'mobile-header' in a) or '')
@@ -107,6 +112,8 @@ with open(OUT_JS, 'w', encoding='utf-8') as f:
             f.write(f'    modal: `{js_template(v["modal"])}`,\n')
         else:
             f.write('    modal: null,\n')
+        if v.get('sidebar'):
+            f.write(f'    sidebar: `{js_template(v["sidebar"])}`,\n')
         f.write('  },\n')
     f.write('};\n')
 
