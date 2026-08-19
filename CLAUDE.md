@@ -52,12 +52,22 @@ contenteditable + persisted text. Router click-handler = NAVIGATION ONLY
   content ≠ capture 15).
 - Variant data: Sunlit (Shade) + Moonmilk (Tint) are real production options;
   other products' options in VARIANTS are plausible demo values.
-- Known inert-by-design (production behavior not captured — login was lost):
-  About-edit "Add post" tile, launched "Shopify fulfillment" chip, sidebar
-  Settings/UGC/Push Alerts/Brand Intelligence + account menu (new-chrome
-  pages never captured). Grab these in a 5-min re-login capture pass if
-  needed — the stash/pump toolkit recipe is in memory
-  (reference_browser_pane_capture_pipeline).
+- Aug 19 re-login capture round (states 27–34) CLOSED the inert list:
+  postRequirements/guidelines edit modes are the real captured editors
+  (platform radio cards, ✕-dismissible idea/do rows, "+ Add" appends),
+  receive's Edit navigates to the product picker (that's production's real
+  behavior), About-edit "Add post" opens the captured URL modal, Settings is
+  a real page (sidebar active-state synced from capture 31), the account
+  menu pops from capture 32's sidebar, and the launched "Shopify fulfillment"
+  chip is a working visual toggle. Done ALWAYS restores the pre-edit
+  original node (never a capture-15 clone), so brief and draft-resume each
+  keep their own content. Still inert on purpose: sidebar Soon items
+  (production's /ugc etc. just fall through to the consumer site — verified),
+  Log out, and Settings' Reconnect/Disconnect buttons.
+  ⚠ Capture etiquette learned the hard way: the fulfillment chip on a REAL
+  campaign is a live setting — clicking it during capture flipped campaign
+  94's fulfillment off for ~1 min (restored + verified). Probe unknown
+  controls on drafts, never launched campaigns.
 - Captured pages carry `benable-collab-studio` real demo data (Shopify CDN
   product images, brand logo) — remote assets, need network.
 
