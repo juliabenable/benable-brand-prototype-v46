@@ -25,6 +25,20 @@
 }
 .nf .workspace-route-progress { display: none !important; }
 
+/* overrides.css unlocks page scroll for the OLD chrome's review pages via
+   .brand-dashboard:has(.draft-review-root){height:auto; overflow:visible} —
+   and the captured brief page carries production's own .draft-review-root,
+   so that unlock fires inside .nf too and kills the inner scroller. Pin the
+   captured geometry back (scoped to .nf, !important to out-rank the :has). */
+/* .nf stacked ×3: their :has rules are also !important at (0,3,0) and load
+   later, so ties lose — (0,4,0)+ wins outright. */
+.nf.nf.nf .brand-dashboard { height: 100vh !important; overflow: hidden !important; }
+.nf.nf.nf .dashboard-body { height: 100% !important; min-height: 0 !important; overflow: hidden !important; }
+.nf.nf.nf main.workspace-content { overflow: hidden !important; height: auto !important; }
+.nf.nf.nf .workspace-content-shell { flex: 1 1 auto !important; min-height: 0 !important; height: auto !important; overflow: auto !important; }
+.nf.nf.nf .workflow-page { height: 100% !important; min-height: 100% !important; overflow: hidden !important; }
+.nf.nf.nf .workspace-grid { overflow-y: auto !important; min-height: 0 !important; height: auto !important; }
+
 /* Old-era production.css has bare element rules (e.g. p { color: #7a4040 }).
    These guards out-rank them (0,1,0 beats 0,0,1) while staying below every
    scoped .nf rule — the v43.1 reviewModal lesson. */

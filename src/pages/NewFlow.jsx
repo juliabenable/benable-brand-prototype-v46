@@ -41,13 +41,16 @@ function seedProducts(stateKey, setIndex = 0) {
   const cards = pickAll(stateKey, '.product-set-card');
   const card = cards[setIndex];
   if (!card) return [];
-  return [...card.querySelectorAll('.product-set-card__product-entry')].map((e) => ({
-    name: (e.querySelector('strong, .product-set-card__product-name') || e).textContent.trim().replace(/\$\d+.*/, '').trim(),
-    html: e.outerHTML,
-  }));
+  return [...card.querySelectorAll('.product-set-card__product-entry')]
+    .filter((e) => !e.querySelector('.product-set-card__add-products'))
+    .map((e) => ({
+      name: (e.querySelector('article > p') || e).textContent.trim(),
+      html: e.outerHTML,
+    }));
 }
 
-const LIVE = {
+const LIVE = (typeof window !== 'undefined' ? (window.__nfLive = {}) : {});
+Object.assign(LIVE, {
   sets: null,          // [{mode:'all'|'choose', pick:1, products:[{name, html}]}]
   addTarget: 0,        // which set an open Add Products modal fills
   modalSel: null,      // Map(name -> {variants}) while the add modal is open
@@ -57,7 +60,7 @@ const LIVE = {
   tier: 0,
   count: 10,
   briefEdits: {},      // data-edit-section -> edited text (kept across toggles)
-};
+});
 
 function ensureSets(alias) {
   if (LIVE.sets) return;
@@ -197,6 +200,48 @@ function enhancePicker(root, ctx, api) {
       syncPickerFooter(root, ctx);
     });
   });
+
+  // live search filter (grid: "Search products…" / modal: "Product Name…")
+  const search = root.querySelector('input[placeholder*="Search products"], input[placeholder*="Product Name"]');
+  const applyFilter = () => {
+    const q = (search?.value || '').trim().toLowerCase();
+    let visible = 0;
+    root.querySelectorAll('.product-card').forEach((card) => {
+      const show = !q || cardInfo(card).name.toLowerCase().includes(q);
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const shown = [...root.querySelectorAll('strong, span, div')].find((el) => el.children.length === 0 && /^\d+ products shown$/.test(el.textContent.trim()));
+    if (shown) shown.textContent = `${visible} products shown`;
+  };
+  if (search && !search.__nfWired) {
+    search.__nfWired = true;
+    search.addEventListener('input', applyFilter);
+    search.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyFilter(); } });
+    search.addEventListener('click', (e) => e.stopPropagation());
+  }
+  const submitBtn = root.querySelector('.product-searchbar-submit');
+  if (submitBtn) on(submitBtn, applyFilter);
+
+  // "Select all shown" (modal toolbar)
+  const selAll = root.querySelector('.product-results-select-all');
+  if (selAll) on(selAll, () => {
+    root.querySelectorAll('.product-card').forEach((card) => {
+      if (card.style.display === 'none') return;
+      const { name } = cardInfo(card);
+      if (ctx.already && ctx.already.has(name)) return;
+      if (!sel.has(name)) {
+        if (hasVariants(name)) {
+          const v = VARIANTS[name];
+          LIVE.variantSel[name] = new Set(v.values.filter((x) => !(v.unavailable || []).includes(x)));
+        }
+        sel.set(name, {});
+        setCardSelected(card, true, variantSummary(name));
+      }
+    });
+    syncPickerFooter(root, ctx);
+  });
+
   syncPickerFooter(root, ctx);
 }
 
@@ -207,10 +252,28 @@ function syncPickerFooter(root, ctx) {
     el.children.length === 0 && /^\d+ selected$/.test(el.textContent.trim())
   );
   if (count) count.textContent = `${n} selected`;
-  // Clear link next to the count appears once something is selected in production;
-  // keep whatever the capture has and just wire it if present.
-  const clear = [...root.querySelectorAll('button, a')].find((el) => el.textContent.trim() === 'Clear');
-  if (clear) on(clear, () => { ctx.sel.clear(); enhancePicker(root, ctx, ctx.api); });
+  // Clear link appears next to the count once something is selected (per
+  // capture 10); inject/remove it to match, and never touch page-level Clears.
+  if (ctx.kind === 'modal' && count) {
+    let clearEl = [...root.querySelectorAll('[data-nf-clear]')][0];
+    if (n > 0 && !clearEl) {
+      const tpl = [...frag('10-addproducts-3selected-variantpill', 'modal').querySelectorAll('button, a, span')]
+        .find((el) => el.children.length === 0 && el.textContent.trim() === 'Clear');
+      clearEl = tpl ? tpl.cloneNode(true) : Object.assign(document.createElement('button'), { textContent: 'Clear', type: 'button' });
+      clearEl.setAttribute('data-nf-clear', '1');
+      count.after(clearEl);
+      on(clearEl, () => {
+        ctx.sel.clear();
+        root.querySelectorAll('.product-card').forEach((c) => {
+          const nm = cardInfo(c).name;
+          if (ctx.already && ctx.already.has(nm)) return;
+          setCardSelected(c, false, hasVariants(nm) ? 'Choose options' : undefined);
+        });
+        syncPickerFooter(root, ctx);
+      });
+    }
+    if (n === 0 && clearEl) clearEl.remove();
+  }
   const cta = [...root.querySelectorAll('button')].find((el) => {
     const t = el.textContent.trim();
     return ctx.kind === 'grid' ? t.includes('Create My Campaign') : t === 'Add';
@@ -293,8 +356,15 @@ function enhanceOptionsOverlay(node, product, api) {
   [...node.querySelectorAll('button')].forEach((b) => {
     const t = b.textContent.trim();
     if (t === 'Add to campaign') on(b, () => api.commitOptions(product));
-    else if (t === 'Cancel' || b.getAttribute('aria-label') === 'Close') on(b, () => api.closeOptions());
+    else if (t === 'Cancel' || (b.getAttribute('aria-label') || '').includes('Close')) on(b, () => api.closeOptions());
   });
+  // scrim click (outside the dialog content) closes
+  if (!node.__nfScrim) {
+    node.__nfScrim = true;
+    node.addEventListener('click', (e) => {
+      if (!e.target.closest('.brand-portal-modal__content')) { e.stopPropagation(); api.closeOptions(); }
+    });
+  }
 }
 
 /* ---- advanced options: data-driven sets builder ---- */
@@ -349,25 +419,25 @@ function renderSets(root) {
       header.after(rule);
     }
 
-    // product entries
+    // product entries — NOTE: the "Add Products" tile is itself an
+    // __product-entry wrapping a .product-set-card__add-products button,
+    // so entry wipes must skip it.
     const productsWrap = card.querySelector('.product-set-card__products');
     if (productsWrap) {
-      const addTile = [...productsWrap.children].find((el) => el.textContent.trim().includes('Add Products'));
-      [...productsWrap.querySelectorAll('.product-set-card__product-entry')].forEach((el) => el.remove());
+      [...productsWrap.querySelectorAll('.product-set-card__product-entry')]
+        .filter((el) => !el.querySelector('.product-set-card__add-products'))
+        .forEach((el) => el.remove());
+      const addEntry = [...productsWrap.children].find((el) => el.querySelector?.('.product-set-card__add-products'));
       set.products.forEach((p) => {
         const tmp = document.createElement('div');
         tmp.innerHTML = p.html;
         const entry = tmp.firstElementChild;
         const x = entry.querySelector('button[aria-label*="Remove"], .product-set-card__product-remove, button');
         if (x) on(x, () => { set.products = set.products.filter((q) => q !== p); renderSets(root); });
-        productsWrap.insertBefore(entry, addTile || null);
+        productsWrap.insertBefore(entry, addEntry || null);
       });
-      const addBtn = addTile?.querySelector('button') || addTile;
+      const addBtn = productsWrap.querySelector('.product-set-card__add-products');
       if (addBtn) on(addBtn, () => nfNav.openAddModal(i));
-    } else {
-      // empty template's Add Products tile
-      const addBtn = [...card.querySelectorAll('button, [role="button"], div')].find((el) => el.textContent.trim() === 'Add Products');
-      if (addBtn) on(addBtn.closest('button') || addBtn, () => nfNav.openAddModal(i));
     }
 
     // trash = delete set (keep at least one)
@@ -410,48 +480,38 @@ function toggleWhoMenu(root, card, i) {
 }
 
 function syncRail(root) {
-  // Creator's view rail: rebuild rows from LIVE.sets using captured row templates
-  const railEmpty = pick('05-create-advanced-default', '[class*="creator-view"], aside, .campaign-creator-view');
-  const rowAllTpl = pickAll('11-advanced-set1-populated', '[class*="creator-view"] [class*="row"], [class*="creator-view"] section');
-  // Fallback: find the rail container in the live DOM by its heading
-  const railHead = [...root.querySelectorAll('*')].find((el) => el.children.length === 0 && el.textContent.trim() === "Creator's view");
-  if (!railHead) return;
-  const rail = railHead.closest('section, aside, div[class*="creator-view"]') || railHead.parentElement;
-  // capture templates from states 11 (get-all row) and 13 (choose row)
-  const t11 = frag('11-advanced-set1-populated');
-  const t13 = frag('13-advanced-2sets-choose-pickcount');
-  const findRow = (root2, needle) => [...root2.querySelectorAll('*')].find((el) => el.children.length > 0 && el.querySelector('*') && el.textContent.includes(needle) && el.textContent.length < 400);
-  const allRow = findRow(t11, 'Get all');
-  const chooseRow = findRow(t13, 'Pick 1 of 1');
-  const emptyPreview = pick('05-create-advanced-default', '[class*="empty"], [class*="placeholder"]');
+  // Creator's view rail = aside.product-set-preview; rows live in
+  // .product-set-preview__sets as .product-set-preview__set entries.
+  const rail = root.querySelector('aside.product-set-preview');
+  if (!rail) return;
+  const emptyAside = pick('05-create-advanced-default', 'aside.product-set-preview');
+  const rowAll = pick('11-advanced-set1-populated', '.product-set-preview__set');
+  const rowChoose = pickAll('13-advanced-2sets-choose-pickcount', '.product-set-preview__set')
+    .find((r) => r.textContent.includes('Pick')) || rowAll;
+  const setsWrapTpl = pick('11-advanced-set1-populated', '.product-set-preview__sets');
 
-  // container that holds the preview rows = parent of whichever row exists now
-  let holder = null;
-  const liveRow = [...rail.querySelectorAll('*')].find((el) => /Get all|Pick \d+ of \d+/.test(el.textContent) && el.children.length > 0 && el.textContent.length < 400 && !el.querySelector('h1,h2,h3'));
-  if (liveRow) holder = liveRow.parentElement;
-  if (!holder) {
-    const ph = [...rail.querySelectorAll('*')].find((el) => el.textContent.includes('What creators get will appear here'));
-    holder = ph ? ph.parentElement : null;
-  }
-  if (!holder) return;
-  holder.innerHTML = '';
   const anyProducts = LIVE.sets.some((s) => s.products.length);
   if (!anyProducts) {
-    if (emptyPreview) holder.appendChild(emptyPreview.cloneNode(true));
+    if (emptyAside) rail.innerHTML = emptyAside.innerHTML;
     return;
   }
+  // header stays; swap the body for a fresh __sets list
+  const header = rail.querySelector('header');
+  rail.innerHTML = '';
+  if (header) rail.appendChild(header);
+  else if (emptyAside?.querySelector('header')) rail.appendChild(emptyAside.querySelector('header').cloneNode(true));
+  const setsWrap = (setsWrapTpl || document.createElement('div')).cloneNode(false);
   LIVE.sets.forEach((set) => {
     if (!set.products.length) return;
-    const tpl = set.mode === 'choose' ? chooseRow || allRow : allRow;
-    if (!tpl) return;
-    const row = tpl.cloneNode(true);
-    const names = set.products.map((p) => p.name).join(', ');
-    const headEl = [...row.querySelectorAll('*')].find((el) => el.children.length === 0 && /Get all|Pick/.test(el.textContent));
+    // row anatomy: .__set-heading > strong("Get all 3") + span("Everyone"|"Choose"), then p > spans(names)
+    const row = (set.mode === 'choose' ? rowChoose : rowAll).cloneNode(true);
+    const headEl = row.querySelector('.product-set-preview__set-heading strong');
     if (headEl) headEl.textContent = set.mode === 'choose' ? `Pick ${set.pick} of ${set.products.length}` : `Get all ${set.products.length}`;
-    const nameEl = [...row.querySelectorAll('*')].find((el) => el.children.length === 0 && /Cloudveil|Moonmilk|,/.test(el.textContent));
-    if (nameEl) nameEl.textContent = names;
-    holder.appendChild(row);
+    const nameEl = row.querySelector('p');
+    if (nameEl) nameEl.textContent = set.products.map((p) => p.name).join(', ');
+    setsWrap.appendChild(row);
   });
+  rail.appendChild(setsWrap);
 }
 
 /* ---- matching preferences ---- */
@@ -486,22 +546,27 @@ function enhanceMatching(root) {
   }
 }
 
-/* ---- brief inline editing ---- */
-function enhanceBrief(root) {
-  const editStates = { about: '16-brief-about-editing', note: '17-brief-note-editing' };
+/* ---- brief inline editing ----
+   useCaptured=false on pages whose content differs from the captured brief
+   (draft-resume, match) — their sections must never be swapped for capture-15
+   content, so they get the generic in-place editable treatment instead. */
+function enhanceBrief(root, useCaptured = true) {
+  const editStates = useCaptured ? { about: '16-brief-about-editing', note: '17-brief-note-editing' } : {};
   root.querySelectorAll('button').forEach((btn) => {
     const label = btn.textContent.trim();
     if (label !== 'Edit') return;
     on(btn, () => {
-      const section = btn.closest('section');
+      // anchor on the CARD-level section — outer wrapper sections also
+      // contain the data-edit markers as descendants
+      const section = btn.closest('section.draft-card');
       if (!section) return;
       const key = section.querySelector('[data-edit-section="about"]') ? 'about'
         : section.querySelector('[data-edit-section="note"]') ? 'note' : '';
       const srcState = editStates[key];
       let replacement = null;
       if (srcState) {
-        // the edit-state capture has exactly one section carrying a Done button
-        replacement = pickAll(srcState, 'section').find((s) =>
+        // the edit-state capture has exactly one card carrying a Done button
+        replacement = pickAll(srcState, 'section.draft-card').find((s) =>
           [...s.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Done')
         );
       }
@@ -510,38 +575,45 @@ function enhanceBrief(root) {
         section.replaceWith(node);
         wireEditingSection(root, node, key);
       } else {
-        // generic sections: flip the label + make text editable in place
-        btn.textContent = 'Done';
-        btn.__nfWired = false;
-        section.querySelectorAll('p, li, blockquote').forEach((p) => { p.contentEditable = 'true'; });
-        on(btn, () => {
-          section.querySelectorAll('[contenteditable]').forEach((p) => p.removeAttribute('contenteditable'));
+        // generic sections: one toggle handler flips label + editability
+        const editing = btn.textContent.trim() === 'Edit';
+        if (editing) {
+          btn.textContent = 'Done';
+          section.querySelectorAll('p, li, blockquote').forEach((p) => { p.contentEditable = 'true'; });
+        } else {
           btn.textContent = 'Edit';
-          btn.__nfWired = false;
-          enhanceBrief(root);
-        });
+          section.querySelectorAll('[contenteditable]').forEach((p) => p.removeAttribute('contenteditable'));
+        }
       }
     });
   });
 }
 
 function wireEditingSection(root, node, key) {
-  // captured edit-state section: make the editor spans truly editable + wire Done
+  // captured edit-state card: make the editor spans truly editable + wire Done
+  const FIELD = key === 'about' ? 'about_brand' : 'note_text';
   node.querySelectorAll('span[style*="font-family"], [contenteditable]').forEach((s) => { s.contentEditable = 'true'; });
+  const photoX = node.querySelector('button[aria-label*="Remove custom note photo"]');
+  if (photoX) on(photoX, () => { (photoX.closest('figure, [class*="photo"], [class*="avatar"]') || photoX.parentElement).remove(); });
   const applyEdits = () => {
-    const span = node.querySelector('span[contenteditable]');
+    const span = node.querySelector(`[data-edit-field="${FIELD}"] span[contenteditable], [data-edit-field="${FIELD}"][contenteditable]`)
+      || node.querySelector('span[contenteditable]');
     if (span) LIVE.briefEdits[key] = span.textContent;
   };
   [...node.querySelectorAll('button')].forEach((b) => {
     if (b.textContent.trim() === 'Done') {
       on(b, () => {
         applyEdits();
-        const viewTpl = pick('15-brief-review-full', `[data-edit-section="${key}"]`);
+        const viewTpl = pickAll('15-brief-review-full', 'section.draft-card').find((s) =>
+          s.querySelector(`[data-edit-section="${key}"]`)
+        );
         if (!viewTpl) return;
         const view = viewTpl.cloneNode(true);
         if (LIVE.briefEdits[key]) {
-          const p = view.querySelector('p');
-          if (p) p.textContent = LIVE.briefEdits[key];
+          const body = view.querySelector(`[data-edit-field="${FIELD}"] p`)
+            || view.querySelector(`[data-edit-field="${FIELD}"]`)
+            || view.querySelector('p');
+          if (body) body.textContent = LIVE.briefEdits[key];
         }
         node.replaceWith(view);
         enhanceBrief(root);
@@ -628,8 +700,12 @@ export default function NewFlow() {
     if (pageScreen === 'step3' && mainEl) {
       enhancePicker(mainEl, { kind: 'grid', sel: LIVE.gridSel, api: nfNav }, nfNav);
     }
-    if ((pageScreen === 'match' || pageScreen === 'match-how') && mainEl) enhanceMatching(mainEl);
-    if ((pageScreen === 'brief' || pageScreen === 'draft-resume') && mainEl) enhanceBrief(mainEl);
+    if ((pageScreen === 'match' || pageScreen === 'match-how') && mainEl) {
+      enhanceMatching(mainEl);
+      enhanceBrief(mainEl, false); // the Target-creator card's Edit → in-place editing
+    }
+    if (pageScreen === 'brief' && mainEl) enhanceBrief(mainEl, true);
+    if (pageScreen === 'draft-resume' && mainEl) enhanceBrief(mainEl, false); // different campaign content — never swap capture-15 sections in
 
     const overlayEl = overlayRef.current;
     if (isModal && overlayEl) {
@@ -639,6 +715,14 @@ export default function NewFlow() {
         );
         // strip captured selection state; live layer re-applies from LIVE.modalSel
         enhancePicker(overlayEl, { kind: 'modal', sel: LIVE.modalSel || new Map(), already, api: nfNav }, nfNav);
+        // scrim click closes without committing
+        const wrap = overlayEl.querySelector('.brand-portal-modal');
+        if (wrap && !wrap.__nfScrim) {
+          wrap.__nfScrim = true;
+          wrap.addEventListener('click', (e) => {
+            if (!e.target.closest('.brand-portal-modal__content')) { e.stopPropagation(); go(pageScreen); }
+          });
+        }
         [...overlayEl.querySelectorAll('button')].forEach((b) => {
           const t = b.textContent.trim();
           if (t === 'Cancel' || b.getAttribute('aria-label') === 'Cancel adding products') on(b, () => go(pageScreen));
@@ -651,15 +735,16 @@ export default function NewFlow() {
               // build an entry from the modal card
               const card = [...overlayEl.querySelectorAll('.product-card')].find((c) => cardInfo(c).name === name);
               const info = card ? cardInfo(card) : { name, price: '', img: '' };
+              // entry anatomy: article > [__product-image > img + span.__price + button.__remove] + p(name)
               const node = entryTpl.cloneNode(true);
-              const nm = node.querySelector('strong, [class*="product-name"]');
+              const nm = node.querySelector('article > p');
               if (nm) nm.textContent = info.name;
-              const pr = [...node.querySelectorAll('*')].find((el) => el.children.length === 0 && /^\$\d/.test(el.textContent.trim()));
+              const pr = node.querySelector('.product-set-card__price');
               if (pr) pr.textContent = info.price;
               const im = node.querySelector('img');
               if (im) { im.src = info.img; im.alt = info.name; }
-              const sub = [...node.querySelectorAll('*')].find((el) => el.children.length === 0 && ['Fair', 'Clear'].includes(el.textContent.trim()));
-              if (sub) sub.textContent = LIVE.variantSel[name] ? [...LIVE.variantSel[name]][0] || '' : '';
+              const rm = node.querySelector('.product-set-card__remove');
+              if (rm) rm.setAttribute('aria-label', `Remove ${info.name} from Product Set ${LIVE.addTarget + 1}`);
               return { name: info.name, html: node.outerHTML };
             });
             go(pageScreen === 'adv' && setRef.products.length ? 'adv' : pageScreen);
@@ -687,6 +772,13 @@ export default function NewFlow() {
     const el = e.target.closest('a, button, [role="tab"], [role="link"]');
     if (!el || !rootRef.current) return;
     if (el.closest('[data-nf-options]')) return; // options overlay handles itself
+    // external links (shop domain chips etc.) keep their real behavior
+    const href = el.getAttribute && el.getAttribute('href');
+    if (href && /^https?:\/\//.test(href)) {
+      e.preventDefault();
+      window.open(href, '_blank', 'noopener');
+      return;
+    }
     e.preventDefault();
     const txt = (el.textContent || '').trim().replace(/\s+/g, ' ');
     const aria = el.getAttribute('aria-label') || '';
@@ -711,6 +803,7 @@ export default function NewFlow() {
         [() => txt === 'Completed', 'overview-completed'],
         [() => /Open Campaign|Cloudveil/i.test(aria), 'launched'],
         [() => txt === 'Finish setup', 'draft-resume'],
+        [() => txt === 'Launch now', 'step1'],
       ],
       step1: [
         [() => txt.includes('Get Started'), 'step2'],
@@ -752,10 +845,12 @@ export default function NewFlow() {
       launched: [
         [() => txt === 'Content', 'launched-content'],
         [() => txt === 'Campaigns', 'overview-after'],
+        [() => txt.includes('Edit Campaign'), 'brief'], // production behavior unverified (login lost) — brief is the sensible target
       ],
       'launched-content': [
         [() => txt === 'Dashboard', 'launched'],
         [() => txt === 'Campaigns', 'overview-after'],
+        [() => txt.includes('Edit Campaign'), 'brief'],
       ],
     };
     NAV['adv-set1'] = NAV.adv;
