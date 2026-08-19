@@ -180,9 +180,23 @@ def scope_css(css):
             i += 1
             continue
         if css[i] == '@':
-            # find prelude end
+            # find prelude end — ';' or '{' only counts outside url(...) parens/quotes
             j = i
-            while j < n and css[j] not in '{;':
+            depth0 = 0
+            quote = None
+            while j < n:
+                c = css[j]
+                if quote:
+                    if c == quote:
+                        quote = None
+                elif c in '"\'':
+                    quote = c
+                elif c == '(':
+                    depth0 += 1
+                elif c == ')':
+                    depth0 -= 1
+                elif depth0 == 0 and c in '{;':
+                    break
                 j += 1
             at = css[i:j].strip()
             if j < n and css[j] == ';':
@@ -242,7 +256,11 @@ for fn in CSS_ORDER:
         css = f.read()
     base = CDN_BASE.get(fn, ASSET_BASE)
     css = rewrite_urls(css, base)
-    pieces.append(f'\n/* ==== {fn} ==== */\n' + scope_css(css))
+    scoped = scope_css(css)
+    # National2Narrow (old-era font) appears only in unused decorative weights;
+    # hotlinking it CORS-errors, so drop those @font-face blocks entirely.
+    scoped = re.sub(r'@font-face\{[^}]*National2Narrow[^}]*\}', '', scoped)
+    pieces.append(f'\n/* ==== {fn} ==== */\n' + scoped)
 
 with open(OUT_CSS, 'w', encoding='utf-8') as f:
     f.write('\n'.join(pieces))

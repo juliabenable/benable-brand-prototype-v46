@@ -6,6 +6,45 @@ URL; new work goes here. Dev: launch `brand-prototype-v46`, port 5224. Live:
 https://juliabenable.github.io/benable-brand-prototype-v46/
 Deploy: `bash scripts/ship.sh "msg"`. Everything below is inherited history.
 
+## /nf — FIRST-PART FLOW on the NEW production chrome (Aug 18 capture)
+
+The create-campaign flow captured from production (benable.com, demo brand
+`benable-collab-studio`, Aug 18 2026 — the app's NEW design: Inter, campaign
+cards, sets builder, AI brief) rebuilt as clickable captured-DOM states.
+**Entry: `/nf`** (campaigns overview) — every screen deep-links as
+`/nf/:screen`: overview · overview-completed · overview-after · step1 · step2 ·
+step3 · adv · adv-who · adv-set1 · adv-2sets · m-add · m-add2 · m-opts ·
+m-add3 · m-add-dim · brief · brief-edit-about · brief-edit-note ·
+draft-resume · match · match-how · generating · launch-t0 · launched ·
+launched-content.
+
+- Raw captures: `captures/sources-aug18/` (24 sha-verified full-DOM states +
+  `css/` + its own README with the flow map). Recapture pipeline is in the
+  memory note `browser-pane-capture-pipeline`.
+- `scripts/newflow-build.py` regenerates BOTH artifacts from the captures:
+  `src/data/newFlowHtml.js` (shell + per-state main/modal fragments,
+  root-relative asset URLs rewritten to production) and
+  `src/styles/newflow-production.css` (all 20 production sheets concatenated
+  and **scoped under `.nf`** — html/body/:root map onto .nf; @import dropped;
+  National2Narrow @font-face stripped to avoid CORS noise).
+- `src/pages/NewFlow.jsx` = the state machine: captured shell + main + modal
+  layers via dangerouslySetInnerHTML (display:contents wrappers), text-matched
+  click transitions per screen (table `T`), reconstructed AI-brief interstitial
+  (`generating` — the only non-captured screen; production DOM was replaced
+  too fast to stash), auto-advancing `launch-t0` transition frame.
+- `src/styles/newflow-extra.css` = host isolation (.nf is position:fixed
+  inset-0, plays the captured <body> role) + `:where` inherit guards that
+  out-rank the OLD era's bare element rules (the v43.1 lesson).
+- **Two CSS eras coexist** (old captured chrome + this). They share class
+  names (.brand-dashboard, .sidebar…), so old class rules can leak properties
+  the scoped CSS doesn't set — today that's only font-family: the old
+  National 2 Narrow @font-faces 404 in this repo (always have), so text falls
+  back to the system stack, which IS the new design's font. Don't add National
+  font files, and keep new-css element rules winning via the .nf prefix.
+- Known cosmetic: React warns about captured `inert=""` attributes (treated
+  false — harmless); production gradient/product images hotlink benable.com +
+  Shopify CDN.
+
 **v45 (Aug 18) — fresh iteration base, snapshot of v43 at v43.2** (Amine's
 review modal default + Tony's flag-an-issue copy merged). v43 stays frozen at
 its own URL as the shared ship; new work goes here. Dev: launch

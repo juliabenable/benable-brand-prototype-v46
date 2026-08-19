@@ -187,62 +187,6 @@ function ControlBar({ store, playing, onToggle, videoRef }) {
   );
 }
 
-/* ---- end-of-queue celebration (confetti + counts) ----------------------- */
-const CONFETTI_COLORS = ['#7a5cfa', '#3caa70', '#f5a623', '#ef5da8', '#4aa3ff'];
-/* deterministic pseudo-random so pieces don't reshuffle on re-render */
-const rand = (i, salt) => {
-  const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
-  return x - Math.floor(x);
-};
-const CONFETTI = Array.from({ length: 56 }, (_, i) => ({
-  left: rand(i, 1) * 100,
-  delay: rand(i, 2) * 1.6,
-  duration: 2.4 + rand(i, 3) * 1.8,
-  drift: (rand(i, 4) - 0.5) * 120,
-  spin: 360 + rand(i, 5) * 540,
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  width: 6 + rand(i, 6) * 4,
-  height: 10 + rand(i, 7) * 6,
-}));
-
-function Celebration({ queue, onClose }) {
-  const all = queue.flatMap((c) => c.assets);
-  const approved = all.filter((a) => a.state === 'approved').length;
-  const changes = all.length - approved;
-  const sub = changes === 0
-    ? `All ${all.length} approved — we’ll get them scheduled and send you the live links.`
-    : approved === 0
-      ? 'Your notes are with our team — we’ll review and keep you posted.'
-      : `${approved} approved and headed for scheduling, ${changes} flagged for our team — we’ll review and keep you posted.`;
-
-  return (
-    <div className="rvm-celebrate-scrim" onClick={onClose}>
-      <div className="rvm-celebrate-card" onClick={(e) => e.stopPropagation()}>
-        <div className="rvm-celebrate-confetti" aria-hidden>
-          {CONFETTI.map((p, i) => (
-            <span
-              key={i}
-              className="rvm-confetti-piece"
-              style={{
-                left: `${p.left}%`, width: p.width, height: p.height, background: p.color,
-                animationDelay: `${p.delay}s`, animationDuration: `${p.duration}s`,
-                '--drift': `${p.drift}px`, '--spin': `${p.spin}deg`,
-              }}
-            />
-          ))}
-        </div>
-        <svg className="rvm-celebrate-check" viewBox="0 0 64 64" fill="none">
-          <circle className="rvm-approve-check-circle" cx="32" cy="32" r="29" stroke="#3caa70" strokeWidth="4" />
-          <path className="rvm-approve-check-mark" d="M20 33.5 28.5 42 44 24.5" stroke="#3caa70" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <h1 className="rvm-celebrate-title">Every draft reviewed!</h1>
-        <p className="rvm-celebrate-sub">{sub}</p>
-        <button type="button" className="rvm-celebrate-cta" onClick={onClose}>Got it!</button>
-      </div>
-    </div>
-  );
-}
-
 /* ---- the review shell --------------------------------------------------- */
 export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
   const mode = scene.mode;
@@ -261,7 +205,6 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
     const j = queue[initIdx]?.assets.findIndex((a) => !a.state) ?? -1;
     return j >= 0 ? j : 0;
   });
-  const [celebrating, setCelebrating] = useState(false);
   /* stage motion: 'flash' (check over the stage) → 'out' (slide left) →
      advance → fresh key slides in. null = at rest. */
   const [flash, setFlash] = useState(null); // { decision } | null
@@ -318,14 +261,14 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
         onClose();
         return;
       }
-      if (celebrating || busy || !creator) return;
+      if (busy || !creator) return;
       if (document.activeElement?.tagName === 'TEXTAREA') return;
       if (e.key === 'ArrowRight' && clipIdx < creator.assets.length - 1) setClipIdx(clipIdx + 1);
       if (e.key === 'ArrowLeft' && clipIdx > 0) setClipIdx(clipIdx - 1);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, clipIdx, creator?.assets.length, changesOpen, celebrating, busy]);
+  }, [onClose, clipIdx, creator?.assets.length, changesOpen, busy]);
 
   if (!creator || !clip) return null;
 
@@ -365,8 +308,9 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
         if (j >= 0) { nextC = i; nextJ = j; break; }
       }
       if (nextC < 0) {
-        setFlash(null);
-        setCelebrating(true);
+        /* queue done — the flash was the closure; the table's derived
+           states tell the rest (the confetti screen was retired, Julia) */
+        onClose();
         return;
       }
       setLeaving(true);
@@ -402,9 +346,6 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
 
   return createPortal(
     <div className="rvm">
-      {celebrating ? (
-        <Celebration queue={queue} onClose={onClose} />
-      ) : (
       <div className="rvm-shell-overlay">
         <div className="rvm-shell" role="dialog" aria-modal="true" aria-label="Approve content">
 
@@ -471,36 +412,43 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
                 <img src={A('assets/modal/gradient-bg.png')} alt="" className="rvm-stage-gradient" />
               </div>
 
-              {/* draft pill — the in-creator navigation */}
+              {/* draft pill — the in-creator navigation; arrows only exist
+                  when there is somewhere to go */}
               <div className="rvm-stage-pill">
-                <button
-                  type="button"
-                  className="rvm-pill-arrow"
-                  disabled={busy || clipIdx <= 0}
-                  onClick={() => setClipIdx(clipIdx - 1)}
-                  title="Previous draft"
-                >
-                  <img src={A('assets/icons/chevron-12.svg')} alt="" className="rvm-chev12-left" />
-                </button>
+                {creator.assets.length > 1 && (
+                  <button
+                    type="button"
+                    className="rvm-pill-arrow"
+                    disabled={busy || clipIdx <= 0}
+                    onClick={() => setClipIdx(clipIdx - 1)}
+                    title="Previous draft"
+                  >
+                    <img src={A('assets/icons/chevron-12.svg')} alt="" className="rvm-chev12-left" />
+                  </button>
+                )}
                 <span className="rvm-pill-label">
                   Draft {clipIdx + 1} of {creator.assets.length} · {clip.kind}
                   {decided && (
-                    <img
-                      src={A(`assets/icons/${decided === 'approved' ? 'draft-approved' : 'draft-changes'}.svg`)}
-                      alt=""
-                      className="rvm-pill-stamp"
-                    />
+                    <span className={`rvm-pill-tick${decided === 'changes' ? ' rvm-pill-tick--flag' : ''}`} aria-hidden>
+                      {decided === 'changes' ? '!' : (
+                        <svg viewBox="0 0 12 12" fill="none">
+                          <path d="M2.4 6.4 5 9l4.6-6" stroke="#12A150" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </span>
                   )}
                 </span>
-                <button
-                  type="button"
-                  className="rvm-pill-arrow"
-                  disabled={busy || clipIdx >= creator.assets.length - 1}
-                  onClick={() => setClipIdx(clipIdx + 1)}
-                  title="Next draft"
-                >
-                  <img src={A('assets/icons/chevron-12.svg')} alt="" />
-                </button>
+                {creator.assets.length > 1 && (
+                  <button
+                    type="button"
+                    className="rvm-pill-arrow"
+                    disabled={busy || clipIdx >= creator.assets.length - 1}
+                    onClick={() => setClipIdx(clipIdx + 1)}
+                    title="Next draft"
+                  >
+                    <img src={A('assets/icons/chevron-12.svg')} alt="" />
+                  </button>
+                )}
               </div>
 
               {/* the draft itself — keyed so a fresh one slides in. The video
@@ -654,7 +602,6 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
           )}
         </div>
       </div>
-      )}
     </div>,
     document.body
   );
