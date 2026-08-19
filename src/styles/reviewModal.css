@@ -53,6 +53,17 @@
   cursor: default;
 }
 
+/* click-focus paints a hard square ring around icon buttons (the sheet's ✕);
+   keep focus visuals for keyboard users only */
+.rvm :where(button:focus:not(:focus-visible)) {
+  outline: none;
+}
+
+.rvm :where(button:focus-visible) {
+  outline: 2px solid #c9bcff;
+  outline-offset: 2px;
+}
+
 .rvm :where(img) {
   display: block;
 }
@@ -1138,14 +1149,20 @@ body:has(.rvm) {
 
 .rvm-changes-close {
   position: absolute;
-  right: 20px;
-  top: 20px;
-  width: 16px;
-  height: 16px;
+  right: 14px;
+  top: 14px;
+  width: 28px;
+  height: 28px;
   padding: 0;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.rvm-changes-close:hover {
+  background: #f4f4f6;
 }
 
 .rvm-changes-close img {
