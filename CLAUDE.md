@@ -35,6 +35,24 @@ REOPENS its modal w/ saved chips + "Remove product"/"Save" footer; chip edits
 commit on Save only. Amount parsing gotcha: "$50.00" labels — parse the first
 digit group, never strip-all-digits (5000!).
 
+**/nf/track — the v45 tracker merged in (Aug 19 night):** clicking any
+campaign card on either /nf overview opens the FULL v45 tracker (Campaign
+Pulse: stat row + Amine rail + creators table + review shell + wrap-up)
+hosted under the NEW-chrome sidebar. `NfTrack.jsx` = grid of [.nf-scoped
+sidebar cell | UNSCOPED old-chrome document] — the tracker content must
+never sit inside .nf (both CSS worlds own .workflow-header/.workspace-grid
+etc.). Clicked card's name patches the tracker h1 (sessionStorage
+nfTrackTitle); back-link + sidebar are intercepted in the capture phase and
+route mode-aware (/nf/overview vs /nf/gc-overview). FORK SWITCHBOARD:
+`src/components/pulse/forks.js` = shared store (localStorage nfForks) +
+FORK_DEFS registry; the pulse's black cp-mode bar now reads/writes it
+(collab type, who reviews, declined, review UI), and `NfForkBar.jsx` mirrors
+the same bar across all /nf pages with a ⚙ "All forks" admin drawer (one
+row per FORK_DEFS entry — the extensible home for every future fork;
+Julia will spec richer logic). Collab type = the master fork: flips
+overview families, wizard, brief AND tracker stage model (product shipping
+vs local Confirmed/Visited). Old-chrome routes untouched (regression-checked).
+
 **Screens:** overview / overview-completed / overview-after · step1 → step2 →
 step3 (product grid) · adv (advanced sets builder) + m-add modal + options
 modal · generating (interstitial) · brief (AI campaign brief, inline editing)
