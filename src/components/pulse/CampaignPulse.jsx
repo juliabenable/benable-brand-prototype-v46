@@ -4,6 +4,7 @@ import { DAYS, LOCAL, crewFor } from './pulseData.js';
 import { stageOf, AmineProgress2, AmineRail, StayTuned, CreatorsFound } from './amine.jsx';
 import FixedTable from './tableFix.jsx';
 import { reviewNeeds, getReviewMode, setReviewMode, setFlagBeat, flagBeat } from './review.jsx';
+import { forks } from './forks.js';
 
 /*
   Campaign Pulse v34 — single experience (v33's C), kept lean for polishing:
@@ -42,6 +43,11 @@ const EMBED = Q.has('embed');
 if (Q.get('mode') === 'local') persistedMode = 'local';
 if (['modal', 'chat'].includes(Q.get('rui'))) persistedRui = Q.get('rui');
 if (Q.has('declined')) persistedDeclined = Q.get('declined') !== '0';
+/* the shared /nf fork store is the source of truth when present (deep-link
+   params seed it; the /nf ForkBar and this pill both write it) */
+if (Q.get('mode')) forks.set('type', Q.get('mode') === 'local' ? 'local' : 'product');
+if (Q.get('rui')) forks.set('rui', persistedRui);
+if (Q.has('declined')) forks.set('declined', persistedDeclined);
 for (const k of ['table', 'head', 'ship', 'ring']) if (Q.has(k)) persistedToggles = { ...persistedToggles, [k]: Q.get(k) };
 if (Q.has('day')) {
   const qDays = persistedMode === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
@@ -51,7 +57,9 @@ if (Q.has('day')) {
 
 export default function CampaignPulse() {
   const [idx, setIdx] = useState(persistedIdx);
-  const [mode, setMode] = useState(persistedMode);
+  // the shared fork store wins over module memory — a fork flipped on any
+  // /nf page carries into the tracker (and vice versa via the write-backs)
+  const [mode, setMode] = useState(() => (forks.get('type') === 'local' ? 'local' : 'product'));
   const [tg, setTg] = useState(persistedToggles);
   const setToggle = (k, v) => setTg((o) => ({ ...o, [k]: v }));
   const [openCrew, setOpenCrew] = useState(() => new Set());
@@ -62,15 +70,18 @@ export default function CampaignPulse() {
   /* WHO REVIEWS — per-brand config (Aug 10 study @4218): 'benable' default,
      'brand' = the Trilogy model. Module getter feeds every derivation, so
      set it synchronously before re-rendering. */
-  const [review, setReview] = useState(getReviewMode());
-  const switchReview = (r) => { setReviewMode(r); setReview(r); };
+  const [review, setReview] = useState(() => {
+    if (forks.get('review') !== getReviewMode()) setReviewMode(forks.get('review'));
+    return getReviewMode();
+  });
+  const switchReview = (r) => { setReviewMode(r); setReview(r); forks.set('review', r); };
   /* v43 explores review direction B: the conversation (reviewChat.jsx).
      Chat opens by default; the v42 sheet stays one click away. */
-  const [rui, setRui] = useState(persistedRui);
-  useEffect(() => { persistedRui = rui; }, [rui]);
+  const [rui, setRui] = useState(() => forks.get('rui') || persistedRui);
+  useEffect(() => { persistedRui = rui; forks.set('rui', rui); }, [rui]);
   /* declined-invites visibility — Katie's admin switch, off by default */
-  const [showDeclined, setShowDeclined] = useState(persistedDeclined);
-  useEffect(() => { persistedDeclined = showDeclined; }, [showDeclined]);
+  const [showDeclined, setShowDeclined] = useState(() => forks.get('declined'));
+  useEffect(() => { persistedDeclined = showDeclined; forks.set('declined', showDeclined); }, [showDeclined]);
   const rootRef = useRef(null);
   // some days only exist for one collab type (day 10 = CSV shipping)
   const days = mode === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
@@ -93,7 +104,7 @@ export default function CampaignPulse() {
 
   useEffect(() => { persistedIdx = idx; }, [idx]);
   useEffect(() => { persistedToggles = tg; }, [tg]);
-  useEffect(() => { persistedMode = mode; }, [mode]);
+  useEffect(() => { persistedMode = mode; forks.set('type', mode); }, [mode]);
   useEffect(() => { setStageFilter(null); }, [idx, mode, review]);
 
   const toggleCrew = (k) =>

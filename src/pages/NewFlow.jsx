@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { NF_SHELL, NF_STATES } from '../data/newFlowHtml.js';
+import NfForkBar from './NfForkBar.jsx';
+import { forks } from '../components/pulse/forks.js';
 import '../styles/newflow-extra.css';
 import '../styles/newflow-production.css';
 
@@ -962,9 +964,10 @@ export default function NewFlow() {
   const pageScreen = isModal ? (LIVE.lastPage && ADV_FAMILY.has(LIVE.lastPage) ? LIVE.lastPage : 'adv') : screen;
   if (!isModal && screen !== 'generating') LIVE.lastPage = screen;
   if (ADV_FAMILY.has(pageScreen)) ensureSets(pageScreen);
-  // track which campaign type the user is walking (gift flow vs product flow)
-  if (GC_FAMILY.has(pageScreen)) LIVE.gcMode = true;
-  else if (['overview', 'overview-completed', 'overview-after', 'step2', 'step3', 'brief', 'draft-resume'].includes(pageScreen) || ADV_FAMILY.has(pageScreen)) LIVE.gcMode = false;
+  // track which campaign type the user is walking (gift flow vs product flow);
+  // kept in lockstep with the shared fork store the tracker also reads
+  if (GC_FAMILY.has(pageScreen)) { LIVE.gcMode = true; forks.set('type', 'local'); }
+  else if (['overview', 'overview-completed', 'overview-after', 'step2', 'step3', 'brief', 'draft-resume'].includes(pageScreen) || ADV_FAMILY.has(pageScreen)) { LIVE.gcMode = false; forks.set('type', 'product'); }
 
   const go = (next) => navigate('/nf/' + next);
 
@@ -1142,12 +1145,12 @@ export default function NewFlow() {
         [() => txt === 'Completed', 'overview-completed'],
         [() => txt === 'Launch now', 'step1'],
         [() => txt === 'Finish setup', 'draft-resume'],
-        [() => /Open Campaign/i.test(aria), 'launched'],
+        [() => /Open Campaign/i.test(aria), 'track'],
       ],
       'overview-completed': [[() => txt === 'Active', LIVE.lastPage === 'overview-after' ? 'overview-after' : 'overview']],
       'overview-after': [
         [() => txt === 'Completed', 'overview-completed'],
-        [() => /Open Campaign|Cloudveil/i.test(aria), 'launched'],
+        [() => /Open Campaign|Cloudveil/i.test(aria), 'track'],
         [() => txt === 'Finish setup', 'draft-resume'],
         [() => txt === 'Launch now', 'step1'],
       ],
@@ -1158,7 +1161,7 @@ export default function NewFlow() {
       'gc-overview': [
         [() => txt === 'Completed', 'overview-completed'],
         [() => txt === 'Finish setup', 'gc-brief'],
-        [() => /Open Campaign/i.test(aria), 'launched'],
+        [() => /Open Campaign/i.test(aria), 'track'],
         [() => txt === 'Launch now', 'step1'],
       ],
       'gc-step2': [
@@ -1230,6 +1233,11 @@ export default function NewFlow() {
 
     for (const [pred, target] of NAV[isModal ? pageScreen : screen] || []) {
       if (pred()) {
+        // opening a campaign card: carry its name into the tracker header
+        if (target === 'track') {
+          const m = aria.match(/Open (.+?)(?:, (.+))?$/);
+          try { sessionStorage.setItem('nfTrackTitle', (m && (m[2] || m[1])) || ''); } catch { /* ok */ }
+        }
         if (typeof target === 'function') target();
         else go(target);
         return;
@@ -1257,6 +1265,7 @@ export default function NewFlow() {
         </div>
         <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: NF_SHELL.backdrop }} />
       </div>
+      <NfForkBar go={go} />
       {modalHtml && (
         <div ref={overlayRef} style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: modalHtml }} />
       )}

@@ -18,6 +18,7 @@ import WrapReview from './pages/WrapReview.jsx';
 import GlowLoveWrap from './components/glowlove/GlowLoveWrap.jsx';
 import WrapPage from './pages/WrapPage.jsx';
 import NewFlow from './pages/NewFlow.jsx';
+import NfTrack from './pages/NfTrack.jsx';
 
 export default function App() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -36,6 +37,7 @@ export default function App() {
       <Route path="/" element={<Navigate to="/brand/tonypikora/campaigns" replace />} />
       {/* First-part flow on the NEW production chrome (Aug 18 capture) */}
       <Route path="/nf" element={<NewFlow />} />
+      <Route path="/nf/track" element={<NfTrack />} />
       <Route path="/nf/:screen" element={<NewFlow />} />
       <Route path="/brand/login" element={<LoginPage />} />
       <Route path="/brand/tonypikora" element={withShell(<CampaignsListPage />)} />

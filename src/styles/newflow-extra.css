@@ -39,6 +39,59 @@
 .nf.nf.nf .workflow-page { height: 100% !important; min-height: 100% !important; overflow: hidden !important; }
 .nf.nf.nf .workspace-grid { overflow-y: auto !important; min-height: 0 !important; height: auto !important; }
 
+/* ---- /nf/track: v45 tracker under the new-chrome sidebar ---- */
+/* Grid: .nf-scoped sidebar cell | UNSCOPED old-chrome tracker document.
+   The tracker content must never sit inside .nf (colliding class names:
+   .workflow-header, .workspace-grid exist in both CSS worlds). */
+.nf-track {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #fff;
+}
+.nf.nf--embed {
+  position: sticky;
+  top: 0;
+  inset: auto;
+  height: 100vh;
+  overflow: visible;
+  z-index: 5;
+}
+.nf-track__main { min-width: 0; }
+.nf-track__main.brand-dashboard {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+/* clear the fixed fork bar — the old chrome's header hugged the top */
+.nf-track__main .workflow-header { padding-top: 60px; }
+
+/* ---- fork switchboard drawer (⚙ All forks) ---- */
+.nf-forkbar__group { display: inline-flex; align-items: center; gap: 4px; }
+.nf-forkdrawer {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 299;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  background: #211d2af2;
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 18px 50px #00000055;
+  color: #fff;
+  font-family: Inter, -apple-system, sans-serif;
+}
+.nf-forkdrawer__head { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+.nf-forkdrawer__head button { background: none; border: 0; color: #ffffff8a; font-size: 13px; cursor: pointer; padding: 4px; }
+.nf-forkdrawer__sub { margin: 6px 0 12px; font-size: 12px; line-height: 1.5; color: #ffffff8a; }
+.nf-forkdrawer__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #ffffff1a; }
+.nf-forkdrawer__label { font-size: 12.5px; font-weight: 600; }
+.nf-forkdrawer__label span { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; color: #ffffff70; max-width: 250px; line-height: 1.4; }
+.nf-forkdrawer__seg { display: inline-flex; gap: 4px; flex: none; }
+
 /* Old-era production.css has bare element rules (e.g. p { color: #7a4040 }).
    These guards out-rank them (0,1,0 beats 0,0,1) while staying below every
    scoped .nf rule — the v43.1 reviewModal lesson. */
