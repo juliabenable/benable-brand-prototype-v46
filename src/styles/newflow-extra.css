@@ -1,0 +1,63 @@
+/* New-chrome flow (Aug 18 capture) — host isolation + hand-written extras.
+   The captured production CSS lives in newflow-production.css (auto-generated,
+   scoped under .nf). This file holds only what the prototype adds. */
+
+/* The .nf wrapper plays the <body> role of the captured pages. position:fixed
+   isolates it fully from the old-era chrome's body styling and scroll state. */
+.nf {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 10;
+  background: #fff;
+}
+
+/* Old-era production.css has bare element rules (e.g. p { color: #7a4040 }).
+   These guards out-rank them (0,1,0 beats 0,0,1) while staying below every
+   scoped .nf rule — the v43.1 reviewModal lesson. */
+.nf :where(p, span, li, ul, ol, h1, h2, h3, h4, h5, h6, small, strong, em, td, th, label, a) {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+/* --- AI brief-generation interstitial (reconstructed from session screenshot:
+   the live DOM was replaced before it could be stashed) --- */
+.nf-generating {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 148px;
+  z-index: 40;
+}
+.nf-generating .nf-dots {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 34px;
+}
+.nf-generating .nf-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7a5cfa;
+  animation: nf-dot 1s ease-in-out infinite;
+}
+.nf-generating .nf-dots span:nth-child(2) { animation-delay: 0.16s; }
+.nf-generating .nf-dots span:nth-child(3) { animation-delay: 0.32s; }
+@keyframes nf-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.55; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.nf-generating .nf-line {
+  font-size: 13px;
+  color: #9a9aa2;
+  margin: 0 0 10px;
+  opacity: 0.35;
+  transition: opacity 0.4s;
+}
+.nf-generating .nf-line.on { opacity: 1; color: #55555c; }

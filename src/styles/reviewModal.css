@@ -1652,6 +1652,10 @@ body:has(.rvm) {
   flex-direction: column;
   align-items: center;
   padding: 14px 24px 18px;
+}
+
+/* only draft/creator CHANGES slide in — the opening draft appears in place */
+.rvm-stage-content.rvm-anim {
   animation: rvm-stage-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -1883,12 +1887,11 @@ body:has(.rvm) {
 .rvm-shell .rvm-changes-scrim {
   border-radius: 24px;
   display: grid;
-  align-items: center;
+  /* low in the panel box, near the CTAs it came from (Julia, Aug 18) */
+  align-items: end;
   justify-items: end;
   padding-right: 16px;
-  /* the scrim spans the header too — offset so the card centers on the
-     right-hand BOX (the panel below the header), not the whole shell */
-  padding-top: 76px;
+  padding-bottom: 16px;
 }
 
 .rvm-shell .rvm-changes-card {

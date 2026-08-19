@@ -71,6 +71,15 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
   useEffect(() => {
     if (reviewPopupDue(scene, crewAll)) setReviewPopup(true);
   }, [scene.day, scene.mode, scene.review]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* warm the review posters from the dashboard so the modal opens with
+     everything already painted (Julia: no loading feel on open) */
+  useEffect(() => {
+    crewAll.forEach((c) => {
+      if (!c.mystery && c.draftIn) assetsOf(c, scene.mode).forEach((a) => {
+        if (a.poster) { const i = new Image(); i.src = a.poster; }
+      });
+    });
+  }, [scene.day, scene.mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inviting = crewAll.some((c) => !c.mystery && c.stage === 0 && !c.found);
   const shipDay = crewAll.some((c) => c.ship);

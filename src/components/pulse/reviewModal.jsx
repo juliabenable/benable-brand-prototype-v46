@@ -104,7 +104,7 @@ function VideoPane({ clip, store }) {
         className="rvm-video-el"
         src={clip.src}
         poster={clip.poster}
-        preload="metadata"
+        preload="auto"
         playsInline
         muted={muted}
         onClick={togglePlay}
@@ -276,7 +276,28 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
   const creator = queue[Math.min(creatorIdx, queue.length - 1)];
   const clip = creator?.assets[Math.min(clipIdx, (creator?.assets.length ?? 1) - 1)];
 
+  /* the FIRST draft appears in place — only draft/creator changes slide in
+     (Julia: the opening post arriving from the side read as a loading state) */
+  const lastKey = useRef(null);
+  const animRef = useRef(false);
+  if (clip && lastKey.current !== clip.id) {
+    animRef.current = lastKey.current !== null;
+    lastKey.current = clip.id;
+  }
+
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  /* warm every queued poster + clip up front so nothing pops in later */
+  useEffect(() => {
+    queue.forEach((c) => c.assets.forEach((a) => {
+      if (a.poster) { const i = new Image(); i.src = a.poster; }
+      if (a.src) {
+        const v = document.createElement('video');
+        v.preload = 'auto';
+        v.src = a.src;
+      }
+    }));
+  }, [queue]);
 
   /* fresh clip → fresh composer */
   useEffect(() => { setChangesOpen(false); setChangesText(''); }, [clip?.id]);
@@ -485,7 +506,7 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
               {/* the draft itself — keyed so a fresh one slides in. The video
                   owns a flex slot and the caption a FIXED reserve, so caption
                   length never resizes or shifts the player. */}
-              <div key={clip.id} className={`rvm-stage-content${leaving ? ' is-leaving' : ''}`}>
+              <div key={clip.id} className={`rvm-stage-content${animRef.current ? ' rvm-anim' : ''}${leaving ? ' is-leaving' : ''}`}>
                 <div className="rvm-stage-video-slot">
                   <VideoPane clip={clip} store={store} />
                 </div>
