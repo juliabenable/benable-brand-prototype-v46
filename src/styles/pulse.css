@@ -451,14 +451,6 @@
    Decided: nudges only · feedback straight to creator · no reject button ·
    one change round · edits-first (reshoots are Katie's team's conversation).
    The sheet reuses the am-veil; green = approve, amber only on the ask. */
-.rv-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #ececf1; }
-.rv-ava { width: 34px; height: 34px; flex: none; }
-.rv-head-names { min-width: 0; flex: 1; }
-.rv-title { margin: 0; font-size: 15px; font-weight: 700; color: #171717; }
-.rv-meta { margin: 1px 0 0; font-size: 12px; color: #8a8f98; }
-.rv-queue { font-size: 12px; color: #8a8f98; white-space: nowrap; }
-.rv-x { border: none; background: none; font-size: 14px; color: #8a8f98; cursor: pointer; padding: 6px; border-radius: 8px; }
-.rv-x:hover { background: #f3f4f6; color: #171717; }
 
 /* one constant frame — steps swap the right column only, never the size */
 /* social posts are 9:16 — the player keeps the real ratio */
@@ -470,20 +462,7 @@
 /* decisions anchor bottom-right, dialog-style; primaries wear the product
    purple (Julia, Aug 10) */
 
-.rv-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 12px; }
-.rv-chip { border: 1px solid #e4e6ea; border-radius: 999px; padding: 5px 12px; background: #fff; font-family: inherit; font-size: 12px; color: #3c4046; cursor: pointer; }
-.rv-chip--on { border-color: #f0a32e; background: #fff7ea; color: #7a5210; font-weight: 600; }
-.rv-text { width: 100%; border: 1px solid #e2e4ea; border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 13px; line-height: 1.5; color: #171717; resize: vertical; }
-.rv-text:focus { outline: 2px solid #7a5cfa; outline-offset: -1px; }
-.rv-send { border: none; border-radius: 10px; background: #7a5cfa; color: #fff; font-family: inherit; font-weight: 600; cursor: pointer; }
-.rv-send:hover { background: #5e41d6; }
-.rv-send:disabled { opacity: 0.35; cursor: default; }
-.rv-send:disabled:hover { background: #7a5cfa; }
-.rv-katie { border: none; background: none; padding: 0; margin-top: 6px; font-family: inherit; font-size: 11.5px; font-weight: 600; color: #5c6066; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.rv-katie:hover { color: #171717; }
 
-.rv-next { border: none; border-radius: 10px; padding: 9px 16px; background: #7a5cfa; color: #fff; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
-.rv-next:hover { background: #5e41d6; }
 
 /* login-moment pop-up (rematch twin): one blurred portrait per waiting draft,
    the count in the CTA, and a quiet "later" — the tease does the selling */
@@ -498,41 +477,7 @@
    Insense-style: her post is a message, Katie's check is a system line, and
    the brand's reply IS the decision — pre-written acceptance by default,
    suggestion chips flip it into her one change round. */
-.rvc-sheet { width: 720px; max-width: calc(100vw - 40px); padding: 0; overflow: hidden; }
-.rvc-thread { padding: 18px 22px 14px; max-height: 430px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; background: #fafbfc; }
-.rvc-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.rvc-meta { margin: 0 0 0 40px; font-size: 11.5px; color: #9aa0a6; }
-.rvc-row { display: flex; gap: 10px; align-items: flex-end; }
-.rvc-row--brand { justify-content: flex-end; }
-.rvc-ava { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex: none; }
-.rvc-ava img { width: 100%; height: 100%; object-fit: cover; }
-.rvc-bubble { max-width: 420px; background: #fff; border: 1px solid #ececf1; border-radius: 16px 16px 16px 6px; padding: 11px 13px; }
-.rvc-bubble--brand { max-width: 400px; background: #7a5cfa; color: #fff; border: none; border-radius: 16px 16px 6px 16px; font-size: 13px; line-height: 1.55; white-space: pre-line; }
-.rvc-card { display: flex; gap: 11px; }
-.rvc-thumb { position: relative; width: 86px; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; flex: none; background: #1b1d21; }
-.rvc-thumb img { width: 100%; height: 100%; object-fit: cover; opacity: 0.92; display: block; }
-.rvc-play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 15px; text-shadow: 0 1px 8px rgba(0,0,0,0.45); }
-.rvc-len { position: absolute; right: 5px; bottom: 5px; background: rgba(20,22,26,0.78); color: #fff; font-size: 9px; font-weight: 600; border-radius: 999px; padding: 1px 6px; }
-.rvc-kind { margin: 1px 0 3px; font-size: 11.5px; font-weight: 700; color: #1b1d21; }
-.rvc-cap { margin: 0; font-size: 12px; line-height: 1.5; color: #4c5058; }
-.rvc-sys { margin: 2px 0; text-align: center; font-size: 11.5px; color: #9aa0a6; }
-.rvc-sys b { color: #5c6066; font-weight: 600; }
-.rvc-sys--close { margin-top: 8px; }
 
-.rvc-composer { border-top: 1px solid #ececf1; padding: 14px 20px 16px; background: #fff; }
-.rvc-target { margin: 0 0 8px; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; color: #9aa0a6; }
-.rvc-target b { color: #1b1d21; }
-.rvc-chips { margin-bottom: 10px; }
-.rvc-text { resize: none; }
-.rvc-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; margin-top: 10px; }
-.rvc-foot-l { min-width: 0; }
-.rvc-modeswitch { border: none; background: none; padding: 0; font-family: inherit; font-size: 12px; font-weight: 600; color: #5c6066; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
-.rvc-modeswitch:hover { color: #171717; }
-.rvc-modenote { margin: 4px 0 0; font-size: 11.5px; line-height: 1.5; color: #9aa0a6; }
-.rvc-modenote-b { display: block; margin-top: 2px; }
-.rvc-chipsep { width: 1px; height: 18px; margin: 3px 2px; background: #e9ebee; }
-.rvc-send { flex: none; padding: 10px 18px; border-radius: 10px; font-size: 13.5px; }
-.rvc-donebar { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
 
 /* ---- tf-decl · declined invites behind Katie's switch (Aug 11) ----------
    who + when, never why — reasons stay with Benable; rows are the table's

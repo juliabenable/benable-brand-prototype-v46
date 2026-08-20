@@ -16,18 +16,11 @@ import { PHOTOS, reviewFor } from './pulseData.js';
    rows/rail/chips DERIVE their presentation — flip the toggle back to
    Benable-reviews and the Katie-checks world returns untouched.
 
-   The REVIEW UIs live elsewhere: reviewModal.jsx (Amine's modal, default)
-   and reviewChat.jsx (direction B). The v42 sheet direction was removed
-   (Julia, Aug 17) — it lives on in frozen v42. The login ReviewPopup below
-   was removed with it, then brought back the same day (Julia). */
-
-/* craft pass (Interface Craft, Aug 11): chips are words — the icons-off rule */
-export const QUICK_FIXES = [
-  { label: 'Caption tweak', fill: 'Could the caption also mention …' },
-  { label: 'Different cover frame', fill: 'Could the cover be a different frame — maybe …' },
-  { label: 'Trim or reorder clips', fill: 'Could the clips be reordered so … opens?' },
-  { label: 'Text on screen', fill: 'Could the on-screen text say … instead?' },
-];
+   THE review UI is reviewModal.jsx (the shell). The v42 sheet and the v43
+   chat directions are both RETIRED (Julia, Aug 17 + Aug 20 — the
+   straight-to-creator one-change-round model is dead; flags go to Katie's
+   team). They live on in frozen v42/v43. The login ReviewPopup below was
+   removed then brought back (Julia, Aug 17). */
 
 const EMBED = new URLSearchParams(window.location.search).has('embed');
 

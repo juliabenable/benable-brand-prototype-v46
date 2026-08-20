@@ -4,7 +4,6 @@ import { DAYS, LOCAL, crewFor } from './pulseData.js';
 import { stageOf, AmineProgress2, AmineRail, StayTuned, CreatorsFound } from './amine.jsx';
 import FixedTable from './tableFix.jsx';
 import { reviewNeeds, getReviewMode, setReviewMode, setFlagBeat, flagBeat } from './review.jsx';
-import { forks } from './forks.js';
 
 /*
   Campaign Pulse v34 — single experience (v33's C), kept lean for polishing:
@@ -28,10 +27,6 @@ const F_OPTS = { edu: 'b', stage: 'dots', act: 'calm', late: 'quiet', icons: 'of
    switchers are gone from the pill (deep-links still accept overrides for the
    states gallery); the exploration lives in v39. */
 let persistedToggles = { head: 'grey', ship: 'head', table: 'k', ring: 'solid' };
-/* review direction (v43): 'modal' = Amine's review-content modal (default) ·
-   'chat' = the conversation. The v42 sheet direction was removed (Julia,
-   Aug 17) — it lives on in frozen v42. */
-let persistedRui = 'modal';
 /* Katie's per-brand admin switch: declined invites stay hidden by default */
 let persistedDeclined = false;
 
@@ -41,13 +36,7 @@ let persistedDeclined = false;
 const Q = new URLSearchParams(window.location.search);
 const EMBED = Q.has('embed');
 if (Q.get('mode') === 'local') persistedMode = 'local';
-if (['modal', 'chat'].includes(Q.get('rui'))) persistedRui = Q.get('rui');
 if (Q.has('declined')) persistedDeclined = Q.get('declined') !== '0';
-/* the shared /nf fork store is the source of truth when present (deep-link
-   params seed it; the /nf ForkBar and this pill both write it) */
-if (Q.get('mode')) forks.set('type', Q.get('mode') === 'local' ? 'local' : 'product');
-if (Q.get('rui')) forks.set('rui', persistedRui);
-if (Q.has('declined')) forks.set('declined', persistedDeclined);
 for (const k of ['table', 'head', 'ship', 'ring']) if (Q.has(k)) persistedToggles = { ...persistedToggles, [k]: Q.get(k) };
 if (Q.has('day')) {
   const qDays = persistedMode === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
@@ -55,20 +44,9 @@ if (Q.has('day')) {
   if (qi >= 0) persistedIdx = qi;
 }
 
-/* Let /nf open the tracker on a specific day (e.g. a COMPLETED campaign
-   lands on Day 30 — the wrap state). Respects the current collab type's
-   day list. */
-export const setPulseDay = (day) => {
-  const arr = forks.get('type') === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
-  const i = arr.findIndex((d) => d.day === day);
-  if (i >= 0) persistedIdx = i;
-};
-
 export default function CampaignPulse() {
   const [idx, setIdx] = useState(persistedIdx);
-  // the shared fork store wins over module memory — a fork flipped on any
-  // /nf page carries into the tracker (and vice versa via the write-backs)
-  const [mode, setMode] = useState(() => (forks.get('type') === 'local' ? 'local' : 'product'));
+  const [mode, setMode] = useState(persistedMode);
   const [tg, setTg] = useState(persistedToggles);
   const setToggle = (k, v) => setTg((o) => ({ ...o, [k]: v }));
   const [openCrew, setOpenCrew] = useState(() => new Set());
@@ -79,18 +57,13 @@ export default function CampaignPulse() {
   /* WHO REVIEWS — per-brand config (Aug 10 study @4218): 'benable' default,
      'brand' = the Trilogy model. Module getter feeds every derivation, so
      set it synchronously before re-rendering. */
-  const [review, setReview] = useState(() => {
-    if (forks.get('review') !== getReviewMode()) setReviewMode(forks.get('review'));
-    return getReviewMode();
-  });
-  const switchReview = (r) => { setReviewMode(r); setReview(r); forks.set('review', r); };
+  const [review, setReview] = useState(getReviewMode());
+  const switchReview = (r) => { setReviewMode(r); setReview(r); };
   /* v43 explores review direction B: the conversation (reviewChat.jsx).
      Chat opens by default; the v42 sheet stays one click away. */
-  const [rui, setRui] = useState(() => forks.get('rui') || persistedRui);
-  useEffect(() => { persistedRui = rui; forks.set('rui', rui); }, [rui]);
   /* declined-invites visibility — Katie's admin switch, off by default */
-  const [showDeclined, setShowDeclined] = useState(() => forks.get('declined'));
-  useEffect(() => { persistedDeclined = showDeclined; forks.set('declined', showDeclined); }, [showDeclined]);
+  const [showDeclined, setShowDeclined] = useState(persistedDeclined);
+  useEffect(() => { persistedDeclined = showDeclined; }, [showDeclined]);
   const rootRef = useRef(null);
   // some days only exist for one collab type (day 10 = CSV shipping)
   const days = mode === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
@@ -98,8 +71,8 @@ export default function CampaignPulse() {
   /* day-16 recap/upNext copy differs by reviewer — resolve the variant */
   const pickR = (v) => (v && v.byReview ? (v[review] ?? v.benable) : v);
   const scene = mode === 'local'
-    ? { ...base, mode, review, rui, showDeclined, upNext: pickR(LOCAL.upNext[base.day] ?? base.upNext), recap: pickR(LOCAL.recap[base.day] ?? base.recap) }
-    : { ...base, mode, review, rui, showDeclined, upNext: pickR(base.upNext), recap: pickR(base.recap) };
+    ? { ...base, mode, review, showDeclined, upNext: pickR(LOCAL.upNext[base.day] ?? base.upNext), recap: pickR(LOCAL.recap[base.day] ?? base.recap) }
+    : { ...base, mode, review, showDeclined, upNext: pickR(base.upNext), recap: pickR(base.recap) };
   const phase = scene.phase; // 'sourcing' | 'review' | undefined (live dashboard)
 
   const switchMode = (m) => {
@@ -113,7 +86,7 @@ export default function CampaignPulse() {
 
   useEffect(() => { persistedIdx = idx; }, [idx]);
   useEffect(() => { persistedToggles = tg; }, [tg]);
-  useEffect(() => { persistedMode = mode; forks.set('type', mode); }, [mode]);
+  useEffect(() => { persistedMode = mode; }, [mode]);
   useEffect(() => { setStageFilter(null); }, [idx, mode, review]);
 
   const toggleCrew = (k) =>
@@ -209,14 +182,6 @@ export default function CampaignPulse() {
         </button>
         <button type="button" className={showDeclined ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => setShowDeclined(true)}>
           Shown
-        </button>
-        <span className="cp-mode-sep" aria-hidden />
-        <span className="cp-scrub-tag">REVIEW UI</span>
-        <button type="button" className={rui === 'modal' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => setRui('modal')}>
-          Modal
-        </button>
-        <button type="button" className={rui === 'chat' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => setRui('chat')}>
-          Chat
         </button>
         {/* FLAG DEMO — steps every flagged asset through the resolution
             beats (Julia, Aug 18: fix agreed → resolved, no re-review; she

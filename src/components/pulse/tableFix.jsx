@@ -2,7 +2,6 @@ import { useEffect, useReducer, useState } from 'react';
 import { crewFor, PHOTOS, TIMELINES, CASTING_TIMELINE, STAGE_LABELS, SPOTS, LOCAL, NEXT_HINTS, DECLINED } from './pulseData.js';
 import { stageOf, stagesFor, AM_FILTER_LABEL, ActionModal } from './amine.jsx';
 import { ReviewPopup, reviewPopupDue, dismissReviewPopup, assetsOf, isReviewRow, reviewRowFace, reviewNeeds, rowReviewState } from './review.jsx';
-import { ChatReview } from './reviewChat.jsx';
 import { ReviewModal } from './reviewModal.jsx';
 import LiveStatus from './LiveStatus.jsx';
 
@@ -215,7 +214,9 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
         {/* plain text — filtering lives on the tracker, not here (Julia, Jul 28) */}
         <span className="tf-gdot">
           {/* needs-you rows: the status dot goes amber too (Julia, Jul 28) */}
-          <i style={{ background: amber ? '#f0a32e' : CHIP_FILLS[reached].bg }} />{wrapped ? 'Thanked' : stages[reached].label}
+          <i style={{ background: amber ? '#f0a32e' : CHIP_FILLS[reached].bg }} />
+          {/* resolved flags wear their own word — the rail keeps its stages (Julia) */}
+          {wrapped ? 'Thanked' : face && rowReviewState(c, scene.mode) === 'resolved' ? 'Resolved' : stages[reached].label}
         </span>
       </span>
     );
@@ -322,7 +323,8 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
               ) : stage === 'dots' ? (
                 /* plain text — filtering lives on the tracker (Julia, Jul 28) */
                 <span className="tf-gdot">
-                  <i style={{ background: CHIP_FILLS[reached].bg }} />{wrapped ? 'Thanked' : stages[reached].label}
+                  <i style={{ background: CHIP_FILLS[reached].bg }} />
+                  {wrapped ? 'Thanked' : face && rowReviewState(c, scene.mode) === 'resolved' ? 'Resolved' : stages[reached].label}
                 </span>
               ) : (
                 <span className="tf-chip" style={{ background: CHIP_FILLS[reached].bg, color: CHIP_FILLS[reached].ink }}>
@@ -356,7 +358,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
                       <div className="cp-hist-top">
                         {/* history speaks the tracker's stage names — except the
                             finale, which gets its exclamation (Julia, Jul 28) */}
-                        <span className="cp-hist-label">{c.mystery ? st.label : si === 6 ? 'Thanked' : si === 5 ? 'Live!' : stages[si].label}</span>
+                        <span className="cp-hist-label">{c.mystery ? st.label : si === 6 ? 'Thanked' : si === 5 ? 'Live!' : si === 4 && face && rowReviewState(c, scene.mode) === 'resolved' ? 'Resolved' : stages[si].label}</span>
                         <span className="cp-hist-when">{state === 'done' ? (st.when || 'done') : state === 'now' ? 'right now' : 'up next'}</span>
                       </div>
                       {/* future steps only say what's PLANNED — never a past
@@ -582,9 +584,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
       )}
 
       {modal?.kind === 'review' ? (
-        scene.rui === 'chat'
-          ? <ChatReview scene={scene} rows={crewAll} initial={modal.name} onClose={() => setModal(null)} onDecide={() => { bump(); onReviewChange?.(); }} />
-          : <ReviewModal scene={scene} rows={crewAll} initial={modal.name} onClose={() => setModal(null)} onDecide={() => { bump(); onReviewChange?.(); }} />
+        <ReviewModal scene={scene} rows={crewAll} initial={modal.name} onClose={() => setModal(null)} onDecide={() => { bump(); onReviewChange?.(); }} />
       ) : modal ? (
         <ActionModal act={modal} onClose={() => setModal(null)} />
       ) : null}
