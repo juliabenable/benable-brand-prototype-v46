@@ -1,4 +1,110 @@
-# benable-brand-prototype-v45 — Campaign Pulse
+# benable-brand-prototype-v46 — Campaign Pulse
+
+**v46 (Aug 18) — fresh iteration base, snapshot of v45** (three-pane review
+shell + all polish rounds + Option-A flagged-row faces, kept in lockstep with
+v45 through Julia's review night). v45 stays frozen at its own URL; new work
+goes here. Dev: launch `brand-prototype-v46`, port 5224. Live:
+https://juliabenable.github.io/benable-brand-prototype-v46/
+Deploy: `bash scripts/ship.sh "msg"`. Everything below is inherited history.
+
+## /nf — the NEW brand-portal first-part flow (Aug 18-19 2026 capture)
+
+**What:** production's REDESIGNED brand portal (new chrome: Inter, card
+overview, banked "Launch now", create wizard, AI brief, creator matching),
+captured live from benable.com as `benable-collab-studio` and rebuilt as a
+fully interactive prototype. 26 captured states in `captures/sources-aug18/`
+(each `NN-name.html` = full doc; extracted by `scripts/extract_newflow.py`
+into `src/data/newFlowHtml.js` NF_SHELL + NF_STATES{main,modal}).
+The old-chrome prototype (`/brand/tonypikora/...`) is untouched; `/nf` and
+`/nf/:screen` are additive routes. Entry: `/nf` → campaigns overview.
+
+**Gift-card campaign type (Aug 19 evening, captures 35-48):** Julia flipped the
+demo account to gift-card mode on production; the wizard becomes Gift Card →
+location ("Which location is this for?", Tokyo/Paris demo restaurants) →
+amount ($50/$100 Best/$150/Other w/ black card art) → gift brief whose
+receive-Edit opens a card-value MODAL (Update; .draft-gift-card-* classes —
+NOT the wizard's .gift-card-*), and the campaigns overview grows location
+filter pills + location-grouped campaign stacks. Prototype routes: gc-overview
+/ gc-overview-tokyo / gc-step2 / gc-location / gc-amount / gc-brief;
+LIVE.gcMode steers step1/generating/sidebar between flows. Product step2 was
+upgraded to capture 36 (adds "UGC for Your Brand" + "Hybrid" coming-soon
+cards). DEMO-ONLY deviation: the other reward type's disabled card on each
+step2 is re-enabled as a flow crossover (production enables one per account).
+Capture 35 also fixed product options: clicking a SELECTED variant product
+REOPENS its modal w/ saved chips + "Remove product"/"Save" footer; chip edits
+commit on Save only. Amount parsing gotcha: "$50.00" labels — parse the first
+digit group, never strip-all-digits (5000!).
+
+**/nf/track — the v45 tracker merged in (Aug 19 night):** clicking any
+campaign card on either /nf overview opens the FULL v45 tracker (Campaign
+Pulse: stat row + Amine rail + creators table + review shell + wrap-up)
+hosted under the NEW-chrome sidebar. `NfTrack.jsx` = grid of [.nf-scoped
+sidebar cell | UNSCOPED old-chrome document] — the tracker content must
+never sit inside .nf (both CSS worlds own .workflow-header/.workspace-grid
+etc.). Clicked card's name patches the tracker h1 (sessionStorage
+nfTrackTitle); back-link + sidebar are intercepted in the capture phase and
+route mode-aware (/nf/overview vs /nf/gc-overview). FORK SWITCHBOARD:
+`src/components/pulse/forks.js` = shared store (localStorage nfForks) +
+FORK_DEFS registry; the pulse's black cp-mode bar now reads/writes it
+(collab type, who reviews, declined, review UI), and `NfForkBar.jsx` mirrors
+the same bar across all /nf pages with a ⚙ "All forks" admin drawer (one
+row per FORK_DEFS entry — the extensible home for every future fork;
+Julia will spec richer logic). Collab type = the master fork: flips
+overview families, wizard, brief AND tracker stage model (product shipping
+vs local Confirmed/Visited). Old-chrome routes untouched (regression-checked).
+
+**Screens:** overview / overview-completed / overview-after · step1 → step2 →
+step3 (product grid) · adv (advanced sets builder) + m-add modal + options
+modal · generating (interstitial) · brief (AI campaign brief, inline editing)
+· draft-resume · match + match-how · launch-t0 → launched / launched-content.
+
+**Architecture (`src/pages/NewFlow.jsx`):** base page (captured `<main>` via
+dangerouslySetInnerHTML) + modal overlays (captured body-tail fragments) —
+opening a modal never swaps the page behind it. A live-interaction layer
+(enhance*) mutates the captured DOM directly: product selection w/ check
+indicators, variant chips, LIVE.sets-driven sets builder (cards + rail
+templated at runtime from captured fragments via frag()/pick()), who-gets
+menus, pick-count + creator-count steppers, tier radios, search filters,
+select-all, brief Edit/Done section swaps (capture 15↔16/17) with
+contenteditable + persisted text. Router click-handler = NAVIGATION ONLY
+(text-matched per-screen tables); interactive elements stopPropagation.
+`window.__nfLive` = debug handle. CSS: `newflow-production.css` (~7.1k rules,
+20 route files scoped under `.nf` by the extractor) + `newflow-extra.css`
+(loads FIRST so production wins specificity ties; kills page-entry animations;
+`.nf.nf.nf` structural pins for height/scroll).
+
+**Gotchas:**
+- overrides.css's `:has(.draft-review-root)` page-scroll unlock (review-shell
+  work) also matches the captured brief page inside .nf — the `.nf.nf.nf`
+  !important pins in newflow-extra.css restore the inner-scroll chain
+  (dashboard 100vh → body → workspace-content-shell auto → workflow-page 100%
+  → workspace-grid scrolls). Don't weaken them.
+- The set-card "Add Products" tile is ITSELF a `__product-entry` wrapping
+  `.product-set-card__add-products` — entry wipes must skip it.
+- Brief sections: `data-edit-section` markers live on SUBsections; always
+  anchor swaps on `section.draft-card`, and pick capture-16/17's card by its
+  Done button. draft-resume/match use generic in-place editing only (their
+  content ≠ capture 15).
+- Variant data: Sunlit (Shade) + Moonmilk (Tint) are real production options;
+  other products' options in VARIANTS are plausible demo values.
+- Aug 19 re-login capture round (states 27–34) CLOSED the inert list:
+  postRequirements/guidelines edit modes are the real captured editors
+  (platform radio cards, ✕-dismissible idea/do rows, "+ Add" appends),
+  receive's Edit navigates to the product picker (that's production's real
+  behavior), About-edit "Add post" opens the captured URL modal, Settings is
+  a real page (sidebar active-state synced from capture 31), the account
+  menu pops from capture 32's sidebar, and the launched "Shopify fulfillment"
+  chip is a working visual toggle. Done ALWAYS restores the pre-edit
+  original node (never a capture-15 clone), so brief and draft-resume each
+  keep their own content. Still inert on purpose: sidebar Soon items
+  (production's /ugc etc. just fall through to the consumer site — verified),
+  Log out, and Settings' Reconnect/Disconnect buttons.
+  ⚠ Capture etiquette learned the hard way: the fulfillment chip on a REAL
+  campaign is a live setting — clicking it during capture flipped campaign
+  94's fulfillment off for ~1 min (restored + verified). Probe unknown
+  controls on drafts, never launched campaigns.
+- Captured pages carry `benable-collab-studio` real demo data (Shopify CDN
+  product images, brand logo) — remote assets, need network.
 
 **v45 (Aug 18) — fresh iteration base, snapshot of v43 at v43.2** (Amine's
 review modal default + Tony's flag-an-issue copy merged). v43 stays frozen at
@@ -6,27 +112,19 @@ its own URL as the shared ship; new work goes here. Dev: launch
 `brand-prototype-v45`, port 5223. Live: https://juliabenable.github.io/benable-brand-prototype-v45/
 Deploy: `bash scripts/ship.sh "msg"`. Everything below is inherited v43 history.
 
-**ENGINEERING DECISIONS (Julia, Aug 20, from the edge-case audit):**
-(1) Review deadline = SLACK ESCALATION TO KATIE: when a brand hasn't
-reviewed content for 2 business days → Slack ping to Katie, again at 3, 4…
-(ops-side; no brand-UI change). (2) No undo — approve/flag are terminal,
-confirmed OK. (4) Mixed multi-asset: approved siblings MAY publish while
-another asset's flag is open, but the tracker row STAYS at the laggard
-asset's stage (already the shipped behavior). (5) Stage NOT renamed;
-resolved rows wear their own stage WORD instead — row status cell + drawer
-step 4 read "Resolved" while the rail keeps its columns (drafted, this
-round). (7) The CHAT direction is RETIRED (straight-to-creator one-round
-model is dead): reviewChat.jsx deleted, REVIEW UI pill removed, rvc-/rv-
-chat CSS pruned (rv-pop popup classes kept), QUICK_FIXES removed; the
-"our team"(modal)/"Katie's team"(tracker) voice split is ACCEPTED as-is.
-(3) TONY'S DIRECTION (Slack #proj-brand-portal, Aug 18 21:19): don't
-hard-code the post-flag path — some brands (esp. bigger) will want final
-approval even after the edit; Katie decides per case (creator posts
-directly vs send back to brand) until we have 10-20 real cases. So the
-resolution outcome needs TWO endings in the real schema: publish_directly
-(default, built) OR back_to_review (asset returns to pending as a new
-version → amber face again; not built, spec-only). Failure branches
-(creator refuses fix, disputes) stay OPEN/off-system per Tony.
+**ENGINEERING DECISIONS (Julia, Aug 20, from the edge-case audit — mirrored
+from v45):** (1) Review deadline = SLACK ESCALATION TO KATIE at 2/3/4+
+business days unreviewed (ops-side). (2) No undo — approve/flag terminal.
+(3) Tony (Slack, Aug 18): don't hard-code the post-flag path — Katie decides
+per case whether the creator posts directly or it goes BACK TO THE BRAND for
+final approve; schema needs both endings (publish_directly default,
+back_to_review = asset returns to pending as a new version). (4) Approved
+siblings may publish while a flag is open; the row stays at the laggard's
+stage. (5) Stage not renamed — resolved rows wear the stage WORD "Resolved"
+(row cell + drawer step 4); rail columns unchanged. (7) CHAT DIRECTION
+RETIRED — reviewChat.jsx deleted, REVIEW UI pill gone (the rui fork key is
+now unused), QUICK_FIXES removed; "our team"/"Katie's team" voice split
+accepted.
 
 **v45 REVIEW SHELL (Julia's mock, Aug 18) — reviewModal.jsx rebuilt as a
 three-pane workspace** (solves "confusing to go from one creator to another
@@ -89,19 +187,8 @@ mixed "🚩 Issue on her story — reel approved" (reviewRowFace); stage stays
 Visited; drawer stage-4 next-hint for flagged rows = "We're resolving your
 flag — then she posts" (tableFix); the drawer's "See what you sent ↗" stays
 the door. Header light goes green when only flags remain (ball is with
-Benable). RESOLUTION LIFECYCLE (Julia's call, Aug 18 late): NO second draft, NO
-re-review — Katie's team settles it with the creator and she PUBLISHES
-DIRECTLY; the flag must close loudly. Flagged assets carry `fix`:
-undefined → 'agreed' → 'resolved' (review.jsx setFlagBeat/flagBeat; the
-FLAG DEMO pill group appears in the demo bar once something is flagged and
-steps ALL flagged assets through the beats). Faces (reviewRowFace):
-beat 1 "🚩 Issue flagged — Katie's team is on it" / mixed "🚩 Issue on her
-reel — story approved" · beat 2 "✅ Fix agreed — she's updating it before
-posting" (rowReviewState stays 'changes') · beat 3 = state 'resolved':
-"✅ Issue resolved — updated post going live soon", stageOf advances the row
-to stage 4 like an approval. Drawer stage-4: beat-aware next-hints + done
-line "Issue resolved with Katie's team ✓". Shell: panel heading/rail and
-sidebar line/tick walk the same beats (resolved = green tick). Tracker speaks
+Benable). NOT built: the resolution return-state (new draft back in →
+amber review face again) — no demo data for it yet. Tracker speaks
 "Katie's team" while Tony's modal says "our team" — flagged to Julia,
 left as-is.
 
@@ -210,6 +297,6 @@ Brand-portal prototype: captured production HTML + React overlays. v37 = Julia's
 - A tile row never shows a zero — it shows a sentence about what's happening.
 
 ## Dev + ship
-- Dev: launch.json name `brand-prototype-v45`, port 5223. Demo page: `/brand/tonypikora/campaigns/46` (campaign) and `/brand/tonypikora/campaigns` (brand overview).
+- Dev: launch.json name `brand-prototype-v46`, port 5224. Demo page: `/brand/tonypikora/campaigns/46` (campaign) and `/brand/tonypikora/campaigns` (brand overview).
 - Deploy: `bash scripts/ship.sh "commit message"` — builds, commits, pushes, watches the Pages run, curls the live URL.
-- Live: https://juliabenable.github.io/benable-brand-prototype-v45/
+- Live: https://juliabenable.github.io/benable-brand-prototype-v46/
