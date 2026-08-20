@@ -1313,10 +1313,10 @@ body:has(.rvm) {
 }
 
 .rvm-shell-title {
-  font-size: 21px;
-  line-height: 26px;
+  font-size: 16px;
+  line-height: 21px;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
   color: #1c1c1c;
 }
 
