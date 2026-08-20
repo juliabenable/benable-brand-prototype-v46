@@ -80,12 +80,18 @@ export default function NfTrack() {
 
   return (
     <div className="nf-track">
-      <div
-        className="nf nf--embed nf-track__side"
-        ref={sideRef}
-        onClick={onSideClick}
-        dangerouslySetInnerHTML={{ __html: NF_SHELL.sidebar }}
-      />
+      {/* the sidebar needs the captured page's wrapper chain — the CSS
+          custom properties (--accent, --text-muted) and Inter live on
+          .brand-dashboard.svelte-187rxgr */}
+      <div className="nf nf--embed nf-track__side" ref={sideRef} onClick={onSideClick}>
+        <div className="brand-dashboard svelte-187rxgr" style={{ height: '100%' }}>
+          <div
+            className="dashboard-body svelte-187rxgr"
+            style={{ display: 'block' }}
+            dangerouslySetInnerHTML={{ __html: NF_SHELL.sidebar }}
+          />
+        </div>
+      </div>
       <div className="nf-track__main brand-dashboard" ref={wrapRef}>
         <CampaignDetailPage />
       </div>

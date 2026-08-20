@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { NF_SHELL, NF_STATES } from '../data/newFlowHtml.js';
 import NfForkBar from './NfForkBar.jsx';
 import { forks } from '../components/pulse/forks.js';
+import { setPulseDay } from '../components/pulse/CampaignPulse.jsx';
 import '../styles/newflow-extra.css';
 import '../styles/newflow-production.css';
 
@@ -891,6 +892,37 @@ function openGiftModal(root) {
   }
 }
 
+/* ---- completed campaign (the captured tab only had the empty state) ---- */
+function enhanceCompletedTab(root) {
+  const panel = root.querySelector('#campaign-panel-completed, .overview-stack--completed');
+  if (!panel || panel.querySelector('[data-nf-completed]')) return;
+  const tpl = pick('01-campaigns-overview', 'a[aria-label*="Open Campaign 1"]');
+  if (!tpl) return;
+  const card = tpl.cloneNode(true);
+  card.setAttribute('data-nf-completed', '1');
+  card.setAttribute('aria-label', 'Open Campaign 0, Spring Collection');
+  card.removeAttribute('href');
+  // "Launched" is a bare text node beside the date element — walk text nodes
+  const tw = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+  for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+    const t = n.nodeValue.trim();
+    if (t === 'Launched') n.nodeValue = n.nodeValue.replace('Launched', 'Completed');
+    else if (t === 'August 6') n.nodeValue = 'August 2';
+    else if (t === 'Campaign 1') n.nodeValue = 'Campaign 0';
+    else if (t === 'Fall Campaign') n.nodeValue = 'Spring Collection';
+    else if (t === '29%') n.nodeValue = '100%';
+  }
+  card.querySelectorAll('[style*="width"]').forEach((el) => { el.style.width = '100%'; });
+  const empty = panel.querySelector('.completed-empty');
+  if (empty) empty.replaceWith(card);
+  else panel.appendChild(card);
+  on(card, () => {
+    try { sessionStorage.setItem('nfTrackTitle', 'Spring Collection'); } catch { /* ok */ }
+    setPulseDay(30); // completed campaigns open the tracker on the wrap state
+    nfNav.go('track');
+  });
+}
+
 /* ---- shell: sidebar active state + account menu (captures 31/32) ---- */
 function syncSidebarActive(rootEl, screen) {
   const live = rootEl.querySelector('aside');
@@ -1034,6 +1066,7 @@ export default function NewFlow() {
         sw.classList.toggle('is-enabled', !isOn);
       });
     }
+    if (pageScreen === 'overview-completed' && mainEl) enhanceCompletedTab(mainEl);
     if ((pageScreen === 'gc-overview' || pageScreen === 'gc-overview-tokyo') && mainEl) enhanceGcOverview(mainEl);
     if (pageScreen === 'gc-location' && mainEl) enhanceGcLocation(mainEl);
     if (pageScreen === 'gc-amount' && mainEl) enhanceGcAmount(mainEl);
@@ -1250,6 +1283,7 @@ export default function NewFlow() {
   const modalHtml = isModal ? (NF_STATES[MODALS[screen]] || {}).modal : null;
 
   return (
+    <>
     <div className="nf" ref={rootRef} onClick={handleClick}>
       <div className="brand-dashboard svelte-187rxgr">
         <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: NF_SHELL.header }} />
@@ -1265,10 +1299,13 @@ export default function NewFlow() {
         </div>
         <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: NF_SHELL.backdrop }} />
       </div>
-      <NfForkBar go={go} />
       {modalHtml && (
         <div ref={overlayRef} style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: modalHtml }} />
       )}
     </div>
+      {/* fork switchboard — OUTSIDE .nf so the captured chrome's resets
+          never restyle the pulse pill */}
+      <NfForkBar go={go} />
+    </>
   );
 }

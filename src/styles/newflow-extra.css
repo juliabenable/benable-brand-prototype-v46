@@ -67,6 +67,11 @@
 .nf-track__main .workflow-header { padding-top: 60px; }
 
 /* ---- fork switchboard drawer (⚙ All forks) ---- */
+/* the bar lives OUTSIDE .nf and .cp-root, so pin its font explicitly */
+.nf-forkbar, .nf-forkbar button { font-family: Inter, -apple-system, sans-serif; }
+/* clear the fixed bar on every /nf page (tracker handles its own header) */
+.nf main.workspace-content { padding-top: 46px; }
+.nf .draft-topbar { top: 46px; }
 .nf-forkbar__group { display: inline-flex; align-items: center; gap: 4px; }
 .nf-forkdrawer {
   position: fixed;

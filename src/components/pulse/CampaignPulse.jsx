@@ -55,6 +55,15 @@ if (Q.has('day')) {
   if (qi >= 0) persistedIdx = qi;
 }
 
+/* Let /nf open the tracker on a specific day (e.g. a COMPLETED campaign
+   lands on Day 30 — the wrap state). Respects the current collab type's
+   day list. */
+export const setPulseDay = (day) => {
+  const arr = forks.get('type') === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
+  const i = arr.findIndex((d) => d.day === day);
+  if (i >= 0) persistedIdx = i;
+};
+
 export default function CampaignPulse() {
   const [idx, setIdx] = useState(persistedIdx);
   // the shared fork store wins over module memory — a fork flipped on any
