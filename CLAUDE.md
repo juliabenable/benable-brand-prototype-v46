@@ -124,7 +124,11 @@ stage. (5) Stage not renamed — resolved rows wear the stage WORD "Resolved"
 (row cell + drawer step 4); rail columns unchanged. (7) CHAT DIRECTION
 RETIRED — reviewChat.jsx deleted, REVIEW UI pill gone (the rui fork key is
 now unused), QUICK_FIXES removed; "our team"/"Katie's team" voice split
-accepted.
+accepted. KATIE'S ADMIN FLOW (Aug 20): flag → Slack ping to Katie + admin
+entry; three buttons (send feedback as-is / edit then send / mark resolved);
+send = FIX AGREED, mark = RESOLVED, post-detection AUTO-RESOLVES; brand gets
+one email at resolved; back-to-brand re-review stays manual per Tony. Stage
+word for resolved rows = "Draft Issue Resolved".
 
 **v45 REVIEW SHELL (Julia's mock, Aug 18) — reviewModal.jsx rebuilt as a
 three-pane workspace** (solves "confusing to go from one creator to another

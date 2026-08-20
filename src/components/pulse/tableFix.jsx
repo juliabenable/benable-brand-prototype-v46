@@ -216,7 +216,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
           {/* needs-you rows: the status dot goes amber too (Julia, Jul 28) */}
           <i style={{ background: amber ? '#f0a32e' : CHIP_FILLS[reached].bg }} />
           {/* resolved flags wear their own word — the rail keeps its stages (Julia) */}
-          {wrapped ? 'Thanked' : face && rowReviewState(c, scene.mode) === 'resolved' ? 'Resolved' : stages[reached].label}
+          {wrapped ? 'Thanked' : face && rowReviewState(c, scene.mode) === 'resolved' ? 'Draft Issue Resolved' : stages[reached].label}
         </span>
       </span>
     );
@@ -324,7 +324,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
                 /* plain text — filtering lives on the tracker (Julia, Jul 28) */
                 <span className="tf-gdot">
                   <i style={{ background: CHIP_FILLS[reached].bg }} />
-                  {wrapped ? 'Thanked' : face && rowReviewState(c, scene.mode) === 'resolved' ? 'Resolved' : stages[reached].label}
+                  {wrapped ? 'Thanked' : face && rowReviewState(c, scene.mode) === 'resolved' ? 'Draft Issue Resolved' : stages[reached].label}
                 </span>
               ) : (
                 <span className="tf-chip" style={{ background: CHIP_FILLS[reached].bg, color: CHIP_FILLS[reached].ink }}>
@@ -358,7 +358,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
                       <div className="cp-hist-top">
                         {/* history speaks the tracker's stage names — except the
                             finale, which gets its exclamation (Julia, Jul 28) */}
-                        <span className="cp-hist-label">{c.mystery ? st.label : si === 6 ? 'Thanked' : si === 5 ? 'Live!' : si === 4 && face && rowReviewState(c, scene.mode) === 'resolved' ? 'Resolved' : stages[si].label}</span>
+                        <span className="cp-hist-label">{c.mystery ? st.label : si === 6 ? 'Thanked' : si === 5 ? 'Live!' : si === 4 && face && rowReviewState(c, scene.mode) === 'resolved' ? 'Draft Issue Resolved' : stages[si].label}</span>
                         <span className="cp-hist-when">{state === 'done' ? (st.when || 'done') : state === 'now' ? 'right now' : 'up next'}</span>
                       </div>
                       {/* future steps only say what's PLANNED — never a past
