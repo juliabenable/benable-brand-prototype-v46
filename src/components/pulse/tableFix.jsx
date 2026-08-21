@@ -80,7 +80,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
         if (a.poster) { const i = new Image(); i.src = a.poster; }
       });
     });
-    if (any) { const g = new Image(); g.src = `${B}review/assets/modal/gradient-bg.png`; }
+    if (any) { const g = new Image(); g.src = `${B}review/assets/modal/gradient-bg.webp`; }
   }, [scene.day, scene.mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inviting = crewAll.some((c) => !c.mystery && c.stage === 0 && !c.found);

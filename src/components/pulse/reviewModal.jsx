@@ -412,7 +412,7 @@ export function ReviewModal({ scene, rows, initial, onClose, onDecide }) {
             {/* ---- stage ---- */}
             <div className="rvm-shell-stage">
               <div className="rvm-stage-gradient-clip" aria-hidden>
-                <img src={A('assets/modal/gradient-bg.png')} alt="" className="rvm-stage-gradient" />
+                <img src={A('assets/modal/gradient-bg.webp')} alt="" className="rvm-stage-gradient" />
               </div>
 
               {/* draft pill — the in-creator navigation; arrows only exist

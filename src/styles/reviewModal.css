@@ -1488,6 +1488,9 @@ body:has(.rvm) {
   position: relative;
   min-width: 0;
   min-height: 0;
+  /* lavender sampled from the gradient edge — while the (big) gradient
+     image streams, the stage shows purple, never a white band (Julia) */
+  background: #b593e8;
   overflow: clip;
   display: flex;
   flex-direction: column;

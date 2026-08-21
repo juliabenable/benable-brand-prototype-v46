@@ -165,21 +165,32 @@ flagged/agreed ──Katie returns it───▶ back to pending, NEW VERSION (
 - The flag's note goes to the **Benable team, never the creator** ("Sorry about that, let's make it right" sheet; can't send empty). One note per flag (one-shot report, not a thread).
 - **No reject exists.** No auto-approve exists — **silence never approves**.
 
-### 12.2 Review deadline — ops escalation, not UI pressure
+### 12.2 Notifications & the review deadline
 
-Unreviewed drafts never rot silently: when a brand hasn't reviewed a draft for **2 business days**, Katie gets a **Slack notification**, again at 3, 4, … (ops-side; the brand UI stays calm — nudges only, no timers shown).
+- **Brand email, per post** (Julia's walkthrough, Aug 21): every time a post lands for review, the brand gets an email. The email deep-links into the tracker **with the review pop-up already open** (same as the login behavior: ≥1 pending post ⇒ pop-up). Per-post is deliberate — Trilogy's scale is ~3 creators × 3 posts, and V1 wants the brand to see every arrival; **batching is a later option**, not V1.
+- **Ops escalation:** unreviewed drafts never rot silently — when a brand hasn't reviewed a draft for **2 business days**, Katie gets a **Slack notification**, again at 3, 4, … (ops-side; the brand UI stays calm — nudges only, no timers shown).
+
+**Pre-checks (the green list in the panel):** pre-generated is fine. Ideally the bullets derive from the **brand's brief dos**; the simplest shippable version is 3–4 generic checks (hashtags present, partnership disclosed — they have #ad, "sounds like her"). Ship the simplest generation that works; per-campaign variety is a nice-to-have, not a gate.
 
 ### 12.3 Katie's admin flow (the flag lifecycle owner)
 
-A brand flag fires a **Slack ping to Katie** + an admin queue entry showing the flagged draft + the brand's note. Katie has three actions:
+A brand flag fires a **Slack ping to Katie** (the creator-notification channel) and surfaces **on the creator's card in admin**: open Maya's card and the brand's note ("She is missing the product") is right there. Admin **keeps the existing send-feedback-to-the-creator box** — the brand's note renders beside it as a read-only note, and Katie either copy-pastes it or writes her own version. Her actions:
 
-1. **Send the feedback to the creator** (as written) → asset moves to `fix: agreed`.
+1. **Send the feedback to the creator** (as written) → asset moves to `fix: agreed` (the tracker flips to "Feedback sent to {name}").
 2. **Edit the text, then send** → same transition, edited note goes out.
-3. **Mark as resolved** → `fix: resolved`.
+3. **Mark as resolved** — a **new button in admin** → `fix: resolved` (the tracker advances to "Draft Issue Resolved").
 
 Plus: when we **detect the creator's post** (the updated version going live), the asset **auto-resolves**. Per Tony (Slack, Aug 18): the post-flag ending is **Katie's per-case call** — default is the creator **publishes directly** (no re-review), but Katie can route the asset **back to the brand** for a final approve; that returns it to `pending` as a **new version** (the review CTA re-arms). The schema must support both endings.
 
 The brand gets **one email when the flag resolves** (the loud close). Beat changes in between are visible on login, not pushed.
+
+**V1 scope (deliberate):** ONE round of review only — the brand sees the content once and sends one note; everything after is handled by Katie's team, largely **manually over SMS** for the first brand. V1 is a learning vehicle: what kind of feedback brands actually send, and whether multiple rounds are ever needed (**OPEN** until the data says so).
+
+### 12.6 Brand setup & the per-campaign path
+
+- Admin's **brand-page setup** gets the new path selector: **brand reviews** vs Benable reviews (this is the `who_reviews` config's home).
+- When a brand-reviews brand **creates a campaign**, the campaign **defaults to brand reviews** — with the option, per campaign, to switch it back to **Benable reviews**.
+- If the brand switches a campaign to Benable reviews: fire a **Slack notification to Katie** (so ops knows the path changed) and flip the campaign's tracker to the Benable-review rendering (Katie-checks statuses, no review CTAs — the same world the WHO REVIEWS toggle shows in the prototype).
 
 ### 12.4 Tracker derivation (row face · stage · amber)
 
@@ -208,6 +219,6 @@ Row aggregation precedence (per creator, over their assets): `pending > partial 
 - **Optimistic write:** the shell commits, plays a ~1.15s check flash, then advances. Use the flash as latency cover for the server ack; on rejection, revert + toast (the reviewer hasn't moved yet).
 - **Notes schema:** `{audience: 'staff'}` today (flag notes never reach the creator verbatim — Katie relays); keep the field so a future creator-visible pipeline can't mis-route.
 - **Boundary states:** a submission with zero assets must not derive "review pending" (delete on last withdrawal); a drained queue needs an explicit "all reviewed" close state; pick **one counting unit per surface** (popup counts posts, header light counts rows, shell header counts creators — intentional, but document it).
-- **Front-end:** focus trap + `aria-modal` on the shell (the prototype's background stays keyboard-reachable); `prefers-reduced-motion` fallback for the flash/slide; the 3-pane shell is desktop-only — mobile needs a stacked layout.
+- **Front-end:** focus trap + `aria-modal` on the shell (the prototype's background stays keyboard-reachable); `prefers-reduced-motion` fallback for the flash/slide; the 3-pane shell is desktop-only — mobile needs a stacked layout; the creators **sidebar needs overflow scroll** for long rosters (not in the prototype — Trilogy won't hit it, real data will).
 
-**OPEN (§12):** admin-side audit trail fields (who/when per fix transition) · popup-vs-email dedupe for "drafts ready" · back-to-review versioning UX (how the returned draft is labeled for the brand) · flagged-at-wrap comms (what the wrap email says when a flag resolved late).
+**OPEN (§12):** admin-side audit trail fields (who/when per fix transition) · email batching cadence once volume grows · whether multiple review rounds are needed (learn from V1) · back-to-review versioning UX (how the returned draft is labeled for the brand) · flagged-at-wrap comms (what the wrap email says when a flag resolved late).
