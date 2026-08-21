@@ -571,12 +571,13 @@ export const DAYS = [
   },
 ];
 
-/* ---- brand content review (Trilogy model — Aug 10 call + study @4218) ----
-   Decided config: nudges only (silence never approves) · feedback goes
-   straight to the creator · NO reject button (Katie's team is the escape
-   hatch) · one included change round · composer steers to EDITS, never
-   reshoots (a reshoot = another visit — Katie's team handles those).
-   `checks` = Katie's team's pre-check receipts, shown in the sheet. */
+/* ---- brand content review (Trilogy model — Aug 10 call + study @4218;
+   negative path superseded by Tony's v43.2 FLAG model + the Aug 20
+   resolution lifecycle — see docs/'Brand Dashboard 2.0 states-and-logic.md'
+   §12) ---- Decided config: nudges only (silence never approves) · flag
+   notes go to the BENABLE TEAM, never the creator · NO reject button ·
+   no change rounds — Katie's team resolves flags (fix: agreed → resolved).
+   `checks` = Katie's team's pre-check receipts, shown in the shell. */
 export const REVIEW = {
   /* a creator can submit SEVERAL posts (reel + story + TikTok…) — each asset
      is decided on its own; the crew row aggregates. All social = 9:16.

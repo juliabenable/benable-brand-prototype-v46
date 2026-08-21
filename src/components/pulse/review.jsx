@@ -4,11 +4,11 @@ import { PHOTOS, reviewFor } from './pulseData.js';
 /* Brand content review (Aug 10 call + study @4218) — the shared MODEL layer.
    WHO REVIEWS is a per-brand config — the demo pill toggles it:
    'benable' (default — Katie's team approves, the Statusphere-shaped default)
-   or 'brand' (the Trilogy model). Decided config for brand mode (Julia):
-   nudges only — silence never approves · feedback goes STRAIGHT to the
-   creator, and it can't be sent empty · no reject button (Katie's team is
-   the escape hatch) · one included change round · the composer steers to
-   EDITS — re-filming is a big ask.
+   or 'brand' (the Trilogy model). Decided config for brand mode (v43.2
+   Tony's flag model, superseding Aug 10): nudges only — silence never
+   approves · the flag note goes to the BENABLE TEAM, never the creator ·
+   can't be sent empty · no reject button · no change rounds — Katie's team
+   resolves flags with the creator (see the fix beats below).
 
    Mechanics: rows with `draftIn` have posts in REVIEW[mode]; each ASSET is
    decided on its own (a creator can send reel + story + TikTok). Decisions

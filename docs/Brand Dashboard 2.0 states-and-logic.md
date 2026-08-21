@@ -1,8 +1,8 @@
 # Campaign dashboard — states & logic (v2 spec for Nisarg)
 
-Source of truth: the **v40 prototype** (https://juliabenable.github.io/benable-brand-prototype-v41/brand/tonypikora/campaigns/46) + Julia's Jul 27–29 working sessions. Every state is browsable live in the **states gallery**: https://juliabenable.github.io/benable-brand-prototype-v41/states.html (each frame is the real app deep-linked to one state).
+Source of truth: **§1–10** = the v40 prototype (https://juliabenable.github.io/benable-brand-prototype-v41/brand/tonypikora/campaigns/46) + Julia's Jul 27–29 sessions; states gallery: https://juliabenable.github.io/benable-brand-prototype-v41/states.html. **§12 (brand review & flags)** = the **v46 prototype**: https://juliabenable.github.io/benable-brand-prototype-v46/brand/tonypikora/campaigns/46?day=16&mode=local&review=brand (flag something, then use the FLAG DEMO pill to walk the resolution beats).
 
-v2 supersedes the Jul 27 (v37) spec — the creators table was redesigned (design study + review rounds, Jul 28) and locked in v40. Where logic is still open it's marked **OPEN**.
+v2 superseded the Jul 27 (v37) spec (creators table locked in v40). **v3 (Aug 20) adds §12** — the brand content-review + flag lifecycle, from Julia's Aug 17–20 rounds with Tony. Where logic is still open it's marked **OPEN**.
 
 ---
 
@@ -140,6 +140,74 @@ Opens/closes with a smooth height animation (no snap). Contents = **all 7 stages
 
 ## 11. Deliberately out of v1 / OPEN
 
-- **Brand content-approval step** — design exists, deferred (per-brand flag incoming for clients like Trilogy who want day-of approval); v1 drafts are approved by Katie's team only.
+- ~~Brand content-approval step — deferred~~ → **now specified in §12** (per-brand config; default stays Katie's-team approval).
 - Delay explanations; draft-submitted as a visible stage; per-creator "Request more"; link/affiliate metrics; sub-1k views; sub-50-like quotes.
 - **OPEN:** tracker amber badge must exclude Say-thanks (align with the header light, §2) · **promise-sweeper** — every dated promise on the page ("arriving Thursday", "Draft due Sunday") needs a background job that updates/expires it before it can go stale; prerequisite for real data · multi-post "See her post" plural (§8) · ⓘ tooltip on touch (§4) · header live-list truncation at >3 names (§4) · rollout scope (all campaigns vs new only) · CSV shipped-marking events feeding creator notifications · local visit-date edge cases (creator reschedules).
+
+## 12. Brand content review & flag lifecycle (v3, Aug 20)
+
+**Config.** `who_reviews` is a **per-brand** setting: `benable` (default — Katie's team approves, nothing in this section renders) or `brand` (the Trilogy model). Flipping it mid-campaign is an admin action; recorded decisions keep their provenance (`approved_by`: brand seat user vs Katie's team) — see Mechanics.
+
+**The review surface.** A three-pane shell ("Approve Content"): creators sidebar (per-creator progress) · stage (draft pill "Draft n of N · {kind}", 9:16 player, caption card) · right panel (Katie's-team pre-checks, footnote, **Flag an issue** / **Approve**). Entry: the row's amber ghost CTA ("Review her post" / "Review her N posts" / "Finish review") and the once-per-batch login pop-up. Decisions are **per asset** (reel and story decided separately). Entry always lands on the creator's first undecided draft.
+
+### 12.1 Asset state machine
+
+```
+pending ──approve──▶ approved                      (terminal)
+pending ──flag─────▶ flagged (fix: null)
+flagged ──Katie sends feedback──────▶ fix: agreed
+flagged/agreed ──Katie marks resolved──▶ fix: resolved   (terminal)
+flagged/agreed ──post detected──────▶ fix: resolved      (auto)
+flagged/agreed ──Katie returns it───▶ back to pending, NEW VERSION (per-case, see 12.3)
+```
+
+- **No undo** (decided): approve and flag are terminal for the brand; a mis-click is handled by Katie's team, not a UI reversal.
+- The flag's note goes to the **Benable team, never the creator** ("Sorry about that, let's make it right" sheet; can't send empty). One note per flag (one-shot report, not a thread).
+- **No reject exists.** No auto-approve exists — **silence never approves**.
+
+### 12.2 Review deadline — ops escalation, not UI pressure
+
+Unreviewed drafts never rot silently: when a brand hasn't reviewed a draft for **2 business days**, Katie gets a **Slack notification**, again at 3, 4, … (ops-side; the brand UI stays calm — nudges only, no timers shown).
+
+### 12.3 Katie's admin flow (the flag lifecycle owner)
+
+A brand flag fires a **Slack ping to Katie** + an admin queue entry showing the flagged draft + the brand's note. Katie has three actions:
+
+1. **Send the feedback to the creator** (as written) → asset moves to `fix: agreed`.
+2. **Edit the text, then send** → same transition, edited note goes out.
+3. **Mark as resolved** → `fix: resolved`.
+
+Plus: when we **detect the creator's post** (the updated version going live), the asset **auto-resolves**. Per Tony (Slack, Aug 18): the post-flag ending is **Katie's per-case call** — default is the creator **publishes directly** (no re-review), but Katie can route the asset **back to the brand** for a final approve; that returns it to `pending` as a **new version** (the review CTA re-arms). The schema must support both endings.
+
+The brand gets **one email when the flag resolves** (the loud close). Beat changes in between are visible on login, not pushed.
+
+### 12.4 Tracker derivation (row face · stage · amber)
+
+Row aggregation precedence (per creator, over their assets): `pending > partial > flagged > resolved > approved`.
+
+| Row state | Face (status line) | Right slot | Stage | Amber? |
+|---|---|---|---|---|
+| pending | "✨ Her {kind} is / Her N posts are in — waiting on your review" | ghost CTA "Review her post(s)" | unchanged (laggard) | **yes** |
+| partial | "👀 {done} of {n} posts reviewed — {left} to go" | ghost CTA "Finish review" | unchanged | **yes** |
+| flagged (fix null) | "🚩 Issue flagged — Katie's team is on it" · mixed: "🚩 Issue on her {kind} — {other} approved" | — | unchanged | no |
+| flagged (agreed) | "✅ Feedback sent to {name} — she's updating it before posting" | — | unchanged | no |
+| resolved | "✅ Issue resolved — updated post going live soon" | — | **stage 4**, stage word **"Draft Issue Resolved"** | no |
+| approved | "🎉 All N posts approved — going live soon" | — | **stage 4** ("Draft approved") | no |
+
+- **Amber law extension:** review-pending/partial rows count into "N waiting on you" and tracker badges; flagged/agreed/resolved rows **never** do — the ball is with Katie's team, and the header light goes green when only flags remain.
+- **Laggard rule** (decided): assets may publish independently — an approved sibling can go live while another asset's flag is open — but the **row stays at the least-advanced asset's stage**.
+- **Stage 4 mapping:** `approved` and `resolved` both advance the row to stage 4; the rail column is unchanged (no new stage), but resolved rows wear the **row-cell + drawer stage word "Draft Issue Resolved"** instead of "Draft approved" (a resolved post was never approved — the label must not lie).
+- Drawer stage-4 lines: pending-side hint "Your review — then she posts" · flagged "We're resolving your flag — then she posts" · agreed "Feedback sent — she updates it, then posts" · done: "Approved by you ✓" / "Issue resolved with Katie's team ✓". The drawer's current step always carries **"See what you sent ↗"** once ≥1 asset is decided (reopens the shell read-only: rails + the sent note).
+- **Wrap rule:** the wrap state derives from **actual creator states, never the calendar** — rows with open flags or unreviewed drafts keep their honest faces on the wrap roster; the all-green band renders only when true. (The prototype's day-30 shortcut is demo scaffolding.)
+- Voice: tracker/drawer say **"Katie's team"**; the review shell says **"our team"** (accepted split, Aug 20).
+
+### 12.5 Engineering mechanics (from the Aug 20 edge audit)
+
+- **Identity:** key everything by `campaign_id + creator_id + asset_id` — never display names (the prototype's name-keyed joins are demo shortcuts). Queue addressing by id, not index; define behavior when the staged draft is withdrawn mid-review (toast + advance).
+- **Decision integrity:** version token on approve/flag (draft replaced between load and click ⇒ 409 "draft changed, re-review"); idempotency keys (retry ≠ double-record); server-side immutability (approve-after-flag and vice versa rejected); **first-decision-wins** for concurrent seats + live invalidation (no ghost pending drafts for seat B).
+- **Optimistic write:** the shell commits, plays a ~1.15s check flash, then advances. Use the flash as latency cover for the server ack; on rejection, revert + toast (the reviewer hasn't moved yet).
+- **Notes schema:** `{audience: 'staff'}` today (flag notes never reach the creator verbatim — Katie relays); keep the field so a future creator-visible pipeline can't mis-route.
+- **Boundary states:** a submission with zero assets must not derive "review pending" (delete on last withdrawal); a drained queue needs an explicit "all reviewed" close state; pick **one counting unit per surface** (popup counts posts, header light counts rows, shell header counts creators — intentional, but document it).
+- **Front-end:** focus trap + `aria-modal` on the shell (the prototype's background stays keyboard-reachable); `prefers-reduced-motion` fallback for the flash/slide; the 3-pane shell is desktop-only — mobile needs a stacked layout.
+
+**OPEN (§12):** admin-side audit trail fields (who/when per fix transition) · popup-vs-email dedupe for "drafts ready" · back-to-review versioning UX (how the returned draft is labeled for the brand) · flagged-at-wrap comms (what the wrap email says when a flag resolved late).
