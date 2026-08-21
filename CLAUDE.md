@@ -128,7 +128,10 @@ accepted. KATIE'S ADMIN FLOW (Aug 20): flag → Slack ping to Katie + admin
 entry; three buttons (send feedback as-is / edit then send / mark resolved);
 send = FIX AGREED, mark = RESOLVED, post-detection AUTO-RESOLVES; brand gets
 one email at resolved; back-to-brand re-review stays manual per Tony. Stage
-word for resolved rows = "Draft Issue Resolved".
+word for resolved rows = "Draft Issue Resolved". WRAP RULE for the spec:
+the prototype day-30 shortcut is demo scaffolding — in production the wrap
+derives from actual creator states, never the calendar (open flags /
+unreviewed drafts keep their faces on the wrap roster).
 
 **v45 REVIEW SHELL (Julia's mock, Aug 18) — reviewModal.jsx rebuilt as a
 three-pane workspace** (solves "confusing to go from one creator to another
