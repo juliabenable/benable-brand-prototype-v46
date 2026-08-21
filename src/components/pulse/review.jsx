@@ -83,7 +83,8 @@ export const reviewRowFace = (c, mode) => {
     const short = (k) => k.replace(/^IG /, '').toLowerCase();
     /* beat 2 — the team and the creator settled on the update */
     if (flagged.every((a) => a.fix === 'agreed'))
-      return { status: '✅ Fix agreed — she’s updating it before posting', cta: null, amber: false };
+      /* honesty: we KNOW Katie sent the feedback; "agreed" we don't (Julia, Aug 20) */
+      return { status: `✅ Feedback sent to ${c.name} — she’s updating it before posting`, cta: null, amber: false };
     if (ok.length > 0 && flagged.length === 1)
       return { status: `🚩 Issue on her ${short(flagged[0].kind)} — ${ok.length === 1 ? `${short(ok[0].kind)} approved` : `${ok.length} approved`}`, cta: null, amber: false };
     return { status: '🚩 Issue flagged — Katie’s team is on it', cta: null, amber: false };

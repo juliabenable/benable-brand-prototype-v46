@@ -374,7 +374,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
                           ? (state === 'next'
                               ? (rowReviewState(c, scene.mode) === 'changes'
                                   ? (assetsOf(c, scene.mode).some((a) => a.state === 'changes' && a.fix === 'agreed')
-                                      ? 'Fix agreed — she updates it, then posts'
+                                      ? 'Feedback sent — she updates it, then posts'
                                       : 'We’re resolving your flag — then she posts')
                                   : 'Your review — then she posts')
                               : (rowReviewState(c, scene.mode) === 'resolved'
