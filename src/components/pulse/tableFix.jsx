@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { crewFor, PHOTOS, TIMELINES, CASTING_TIMELINE, STAGE_LABELS, SPOTS, LOCAL, NEXT_HINTS, DECLINED } from './pulseData.js';
 import { stageOf, stagesFor, AM_FILTER_LABEL, ActionModal } from './amine.jsx';
-import { ReviewPopup, reviewPopupDue, dismissReviewPopup, assetsOf, isReviewRow, reviewRowFace, reviewNeeds, rowReviewState } from './review.jsx';
+import { reviewAutoOpenDue, dismissReviewAutoOpen, firstPendingCreator, assetsOf, isReviewRow, reviewRowFace, reviewNeeds, rowReviewState } from './review.jsx';
 import { ReviewModal } from './reviewModal.jsx';
 import LiveStatus from './LiveStatus.jsx';
 
@@ -64,11 +64,14 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
   const [sheetDone, setSheetDone] = useState(false);
   /* declined-invites fold (Katie's switch) — collapsed by default */
   const [declOpen, setDeclOpen] = useState(false);
-  /* login-moment pop-up when drafts wait on the brand (rematch-pattern twin,
-     content-review study @4218) — once per session, never in the gallery */
-  const [reviewPopup, setReviewPopup] = useState(false);
+  /* arrival with posts waiting opens the review DIRECTLY (Julia, Aug 21 —
+     the "N posts are ready" pop-up is gone); once per session, never in
+     the gallery's embed frames */
   useEffect(() => {
-    if (reviewPopupDue(scene, crewAll)) setReviewPopup(true);
+    if (reviewAutoOpenDue(scene, crewAll)) {
+      const name = firstPendingCreator(scene, crewAll);
+      if (name) { dismissReviewAutoOpen(); setModal({ kind: 'review', name }); }
+    }
   }, [scene.day, scene.mode, scene.review]); // eslint-disable-line react-hooks/exhaustive-deps
   /* warm the review posters + the stage gradient from the dashboard so the
      modal opens with everything already painted (Julia: no loading feel) */
@@ -588,14 +591,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
       ) : modal ? (
         <ActionModal act={modal} onClose={() => setModal(null)} />
       ) : null}
-      {reviewPopup && (
-        <ReviewPopup
-          scene={scene}
-          rows={crewAll}
-          onReview={(name) => { dismissReviewPopup(); setReviewPopup(false); setModal({ kind: 'review', name }); }}
-          onLater={() => { dismissReviewPopup(); setReviewPopup(false); }}
-        />
-      )}
+
     </section>
   );
 }

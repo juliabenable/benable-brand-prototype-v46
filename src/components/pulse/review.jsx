@@ -1,5 +1,4 @@
-import { createPortal } from 'react-dom';
-import { PHOTOS, reviewFor } from './pulseData.js';
+import { reviewFor } from './pulseData.js';
 
 /* Brand content review (Aug 10 call + study @4218) — the shared MODEL layer.
    WHO REVIEWS is a per-brand config — the demo pill toggles it:
@@ -112,53 +111,15 @@ export const reviewRowFace = (c, mode) => {
   return { status: `🎉 ${n === 1 ? `Her ${kinds} is approved` : `All ${n} posts approved`} — going live soon`, cta: null, amber: false, approved: true };
 };
 
-/* ---- login-moment pop-up (rematch twin), once per session -------------- */
-let popupSeen = false;
-export const reviewPopupDue = (scene, rows) =>
-  !EMBED && !popupSeen && reviewMode === 'brand' &&
+/* ---- arrival auto-open (Julia, Aug 21: no pop-up — go DIRECTLY to review)
+   Login or an email deep-link with posts waiting opens the review shell
+   itself, once per session, at the first pending creator. Never in ?embed
+   (the states gallery must render the tracker, not the shell). */
+let autoOpened = false;
+export const reviewAutoOpenDue = (scene, rows) =>
+  !EMBED && !autoOpened && reviewMode === 'brand' &&
   rows.some((c) => c.draftIn && reviewNeeds(c, scene.mode) && assetsOf(c, scene.mode).length > 0);
-export const dismissReviewPopup = () => { popupSeen = true; };
+export const dismissReviewAutoOpen = () => { autoOpened = true; };
+export const firstPendingCreator = (scene, rows) =>
+  rows.find((c) => c.draftIn && reviewNeeds(c, scene.mode) && assetsOf(c, scene.mode).length > 0)?.name ?? null;
 
-const pendingRows = (rows, mode) => rows.filter((c) => c.draftIn && reviewNeeds(c, mode));
-
-export function ReviewPopup({ scene, rows, onReview, onLater }) {
-  const pending = pendingRows(rows, scene.mode);
-  const first = pending[0];
-  if (!first) return null;
-  const totalPosts = pending.reduce((a, c) => a + assetsOf(c, scene.mode).filter((x) => !x.state).length, 0);
-  return createPortal(
-    <div className="am-veil" onClick={onLater}>
-      <div className="am-modal rv-pop" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-        {/* the waiting posts as a fanned pile — the tease IS the pitch; the
-            front card wears the chip, the rest peek out behind */}
-        <div className="rv-pop-pile">
-          {pending.slice(0, 3).map((c) => {
-            const assets = assetsOf(c, scene.mode);
-            return (
-              <span key={c.name} className="rv-pop-still">
-                <img src={PHOTOS[c.name]} alt="" />
-                <span className="rv-pop-kind">{assets.length > 1 ? `${c.name} · ${assets.length} posts` : `${c.name} · ${assets[0].kind}`}</span>
-              </span>
-            );
-          })}
-        </div>
-        <p className="am-modal-title rv-pop-title">
-          {totalPosts === 1
-            ? `${first.name}’s ${assetsOf(first, scene.mode)[0].kind} is ready for you`
-            : `${totalPosts} new posts are ready for you`}
-        </p>
-        <p className="am-modal-sub rv-pop-sub">
-          Katie’s team already checked {totalPosts === 1 ? 'it' : 'them'} against your brief — one quick look and {totalPosts === 1 ? 'it’s' : 'they’re'} on the way to being posted.
-        </p>
-        {/* actions live at the bottom of the card, never mid-float */}
-        <div className="rv-pop-foot">
-          <button type="button" className="am-modal-go rv-go rv-pop-go" onClick={() => onReview(first.name)}>
-            Review {totalPosts === 1 ? 'the post' : `the ${totalPosts} posts`}
-          </button>
-          <button type="button" className="rv-pop-later" onClick={onLater}>Later — they’ll wait in your tracker</button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}

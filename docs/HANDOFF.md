@@ -29,6 +29,6 @@ Everything you need to build the campaign-detail Dashboard, in reading order:
 4. **Every animation is a claim** — only real work moves; nothing loops decoratively.
 5. **Honesty** — the UI only asserts what the system can know (tracking events, creator confirmations, public posts, deadlines we set); future steps only show plans.
 
-**Julia's video walkthrough** accompanies this repo (shared alongside the GitHub link) — it demos the email→pop-up arrival, the shell, both decisions, the admin expectations (creator-card note, send-feedback box, the new Resolved button), and the brand-setup path selector. §12 is the written version of everything in it.
+**Julia's video walkthrough** accompanies this repo (shared alongside the GitHub link) — it demos the email arrival (recorded with the since-removed pop-up — the build now opens the review directly), the shell, both decisions, the admin expectations (creator-card note, send-feedback box, the new Resolved button), and the brand-setup path selector. §12 is the written version of everything in it.
 
 Questions → Julia. OPEN items are listed in the spec §11 (promise-sweeper, tooltip on touch, rollout scope…) and §12's OPEN block (audit-trail fields, popup/email dedupe, back-to-review versioning UX).

@@ -148,7 +148,7 @@ Opens/closes with a smooth height animation (no snap). Contents = **all 7 stages
 
 **Config.** `who_reviews` is a **per-brand** setting: `benable` (default — Katie's team approves, nothing in this section renders) or `brand` (the Trilogy model). Flipping it mid-campaign is an admin action; recorded decisions keep their provenance (`approved_by`: brand seat user vs Katie's team) — see Mechanics.
 
-**The review surface.** A three-pane shell ("Approve Content"): creators sidebar (per-creator progress) · stage (draft pill "Draft n of N · {kind}", 9:16 player, caption card) · right panel (Katie's-team pre-checks, footnote, **Flag an issue** / **Approve**). Entry: the row's amber ghost CTA ("Review her post" / "Review her N posts" / "Finish review") and the once-per-batch login pop-up. Decisions are **per asset** (reel and story decided separately). Entry always lands on the creator's first undecided draft.
+**The review surface.** A three-pane shell ("Approve Content"): creators sidebar (per-creator progress) · stage (draft pill "Draft n of N · {kind}", 9:16 player, caption card) · right panel (Katie's-team pre-checks, footnote, **Flag an issue** / **Approve**). Entry: the row's amber ghost CTA ("Review her post" / "Review her N posts" / "Finish review") — and on ARRIVAL (login or email deep-link) with posts waiting, the shell **opens directly** at the first pending creator, once per batch (no interstitial pop-up — removed Aug 21). Decisions are **per asset** (reel and story decided separately). Entry always lands on the creator's first undecided draft.
 
 ### 12.1 Asset state machine
 
@@ -167,7 +167,7 @@ flagged/agreed ──Katie returns it───▶ back to pending, NEW VERSION (
 
 ### 12.2 Notifications & the review deadline
 
-- **Brand email, per post** (Julia's walkthrough, Aug 21): every time a post lands for review, the brand gets an email. The email deep-links into the tracker **with the review pop-up already open** (same as the login behavior: ≥1 pending post ⇒ pop-up). Per-post is deliberate — Trilogy's scale is ~3 creators × 3 posts, and V1 wants the brand to see every arrival; **batching is a later option**, not V1.
+- **Brand email, per post** (Julia's walkthrough, Aug 21): every time a post lands for review, the brand gets an email. The email deep-links into the tracker and the review shell **opens directly** at the first pending creator (same as the login behavior: ≥1 pending post ⇒ straight into review — no interstitial). Per-post is deliberate — Trilogy's scale is ~3 creators × 3 posts, and V1 wants the brand to see every arrival; **batching is a later option**, not V1.
 - **Ops escalation:** unreviewed drafts never rot silently — when a brand hasn't reviewed a draft for **2 business days**, Katie gets a **Slack notification**, again at 3, 4, … (ops-side; the brand UI stays calm — nudges only, no timers shown).
 
 **Pre-checks (the green list in the panel):** pre-generated is fine. Ideally the bullets derive from the **brand's brief dos**; the simplest shippable version is 3–4 generic checks (hashtags present, partnership disclosed — they have #ad, "sounds like her"). Ship the simplest generation that works; per-campaign variety is a nice-to-have, not a gate.
