@@ -82,14 +82,14 @@ export function AmineStat({ scene }) {
         <span className="am-stat-big">{PCT[scene.day]}</span>
         <span className="am-stat-cap">{wrapped ? <>campaign complete! <i className="tf-wrapemoji" aria-hidden>🎉</i></> : 'through your campaign'}</span>
       </div>
-      <div className="am-stat-note">
-        <span aria-hidden>{wrapped ? '🎉' : '🚀'}</span>
-        <span>
-          {wrapped
-            ? 'Wrapped 37 days ahead of average'
-            : 'Campaign on schedule, up to 4 weeks faster than industry average'}
-        </span>
-      </div>
+      {/* the on-schedule note was removed (Julia, Aug 21); the wrap day
+          keeps its celebration line */}
+      {wrapped && (
+        <div className="am-stat-note">
+          <span aria-hidden>🎉</span>
+          <span>Wrapped 37 days ahead of average</span>
+        </div>
+      )}
     </div>
   );
 }
