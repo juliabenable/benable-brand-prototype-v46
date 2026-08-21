@@ -83,15 +83,21 @@ export default function CampaignPulse() {
   /* declined-invites visibility — Katie's admin switch, off by default */
   const [showDeclined, setShowDeclined] = useState(() => forks.get('declined'));
   useEffect(() => { persistedDeclined = showDeclined; forks.set('declined', showDeclined); }, [showDeclined]);
+  /* FULFILLMENT fork (product only): 'shopify' = orders placed + tracked
+     automatically, the whole Day-10 CSV machinery disappears; 'csv' = the
+     brand ships (order sheet + tracking). */
+  const [fulfill, setFulfill] = useState(() => forks.get('fulfill') || 'csv');
+  useEffect(() => { forks.set('fulfill', fulfill); }, [fulfill]);
   const rootRef = useRef(null);
   // some days only exist for one collab type (day 10 = CSV shipping)
-  const days = mode === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS;
+  const days = (mode === 'local' ? DAYS.filter((d) => !d.productOnly) : DAYS)
+    .filter((d) => !(d.csvOnly && fulfill === 'shopify'));
   const base = days[Math.min(idx, days.length - 1)];
   /* day-16 recap/upNext copy differs by reviewer — resolve the variant */
   const pickR = (v) => (v && v.byReview ? (v[review] ?? v.benable) : v);
   const scene = mode === 'local'
-    ? { ...base, mode, review, showDeclined, upNext: pickR(LOCAL.upNext[base.day] ?? base.upNext), recap: pickR(LOCAL.recap[base.day] ?? base.recap) }
-    : { ...base, mode, review, showDeclined, upNext: pickR(base.upNext), recap: pickR(base.recap) };
+    ? { ...base, mode, review, showDeclined, fulfill, upNext: pickR(LOCAL.upNext[base.day] ?? base.upNext), recap: pickR(LOCAL.recap[base.day] ?? base.recap) }
+    : { ...base, mode, review, showDeclined, fulfill, upNext: pickR(base.upNext), recap: pickR(base.recap) };
   const phase = scene.phase; // 'sourcing' | 'review' | undefined (live dashboard)
 
   const switchMode = (m) => {
@@ -186,6 +192,18 @@ export default function CampaignPulse() {
         <button type="button" className={mode === 'local' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => switchMode('local')}>
           Local
         </button>
+        {mode === 'product' && (
+          <>
+            <span className="cp-mode-sep" aria-hidden />
+            <span className="cp-scrub-tag">FULFILLMENT</span>
+            <button type="button" className={fulfill === 'shopify' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => setFulfill('shopify')}>
+              Shopify
+            </button>
+            <button type="button" className={fulfill === 'csv' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => setFulfill('csv')}>
+              CSV
+            </button>
+          </>
+        )}
         <span className="cp-mode-sep" aria-hidden />
         <span className="cp-scrub-tag">WHO REVIEWS</span>
         <button type="button" className={review === 'benable' ? 'cp-scrub-day cp-scrub-day--active' : 'cp-scrub-day'} onClick={() => switchReview('benable')}>

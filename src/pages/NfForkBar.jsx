@@ -31,7 +31,7 @@ export default function NfForkBar({ go }) {
     </button>
   ));
 
-  const bar = FORK_DEFS.slice(0, 3); // type · who reviews · declined; the rest live in the drawer
+  const bar = FORK_DEFS.filter((d) => d.key !== 'rui'); // review UI lives in the drawer only
 
   return (
     <>

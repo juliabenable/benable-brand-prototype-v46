@@ -84,7 +84,7 @@ export default function FixedTable({ scene, rows, filter, onFilter, openCrew, to
   }, [scene.day, scene.mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const inviting = crewAll.some((c) => !c.mystery && c.stage === 0 && !c.found);
-  const shipDay = crewAll.some((c) => c.ship);
+  const shipDay = scene.fulfill !== 'shopify' && crewAll.some((c) => c.ship); // Shopify auto-fulfillment: no brand shipping ever
   const wrapped = scene.day === 30;
   const isLive = (c) => !c.mystery && !wrapped && stageOf(c, scene.day, scene.mode) === 5;
   /* thanks is a gift, not a task — it never counts into the amber light */

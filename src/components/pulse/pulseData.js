@@ -452,9 +452,12 @@ export const DAYS = [
     },
   },
   {
-    /* Day 10 · non-Shopify (CSV) fulfillment — product collabs only */
+    /* Day 10 · non-Shopify (CSV) fulfillment — product collabs only.
+       csvOnly: the whole day disappears under the Shopify fulfillment fork
+       (orders are placed + tracked automatically — nothing for the brand). */
     day: 10,
     productOnly: true,
+    csvOnly: true,
     scrubLabel: 'Day 10 · You ship',
     race: { you: 38, them: 14, caption: 'Day 10 — 3 packages already moving. <strong>Typical campaigns are still contracting.</strong>' },
     upNext: [

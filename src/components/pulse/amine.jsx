@@ -277,7 +277,7 @@ export function AmineTable({ scene, rows, filter, onFilter, openCrew, toggleCrew
      first SPOTS creators to reply are matched, extras held for the next campaign */
   const inviting = crewAll.some((c) => !c.mystery && c.stage === 0 && !c.found);
   /* non-Shopify fulfillment: orders wait on the brand → CSV button in the header */
-  const shipDay = crewAll.some((c) => c.ship);
+  const shipDay = scene.fulfill !== 'shopify' && crewAll.some((c) => c.ship); // Shopify auto-fulfillment: no brand shipping ever
   /* content published but not yet thanked → nudge the thank-you */
   const thanking = crewAll.some((c) => !c.mystery && stageOf(c, scene.day, scene.mode) === 5);
 
